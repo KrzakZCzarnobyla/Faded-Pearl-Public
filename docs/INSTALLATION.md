@@ -1,75 +1,73 @@
-# Instalacja Faded Pearl
+# Installing Faded Pearl
 
-## Wymagania
+## Requirements
 
 - Minecraft `1.20.1`;
 - Forge `47.4.22`;
 - Java `17`;
 - GeckoLib `4.8.4`;
 - SmartBrainLib `1.15`;
-- plik Faded Pearl przeznaczony dla tej samej wersji gry i Forge.
+- a Faded Pearl file built for the same Minecraft and Forge versions.
 
-Faded Pearl oraz obie biblioteki muszą znajdować się w katalogu `mods` po stronie klienta
-i serwera. W grze wieloosobowej wszystkie osoby oraz serwer powinny używać dokładnie tego
-samego JAR-a Faded Pearl. Nie należy mieszać kolejnych kandydatów beta w jednej sesji.
+Faded Pearl and both libraries must be installed in the `mods` directory on the client and the
+server. In multiplayer, the server and every player must use the exact same Faded Pearl JAR.
+Do not mix different beta candidates in one session.
 
-## Eksperymentalny multiplayer
+## Experimental multiplayer
 
-Podstawowa rozgrywka wieloosobowa była testowana we wcześniejszym kandydacie z trzema
-graczami, ale bieżące wydanie nie przeszło pełnej regresji restartów serwera, wylogowań,
-recovery i przejść między wymiarami. Multiplayer jest dostępny eksperymentalnie, nie jako w
-pełni zweryfikowane wsparcie serwerowe. Przed użyciem wykonaj kopię świata. Serwer i wszystkie
-klienty muszą korzystać z dokładnie tego samego JAR-a moda.
+The basic multiplayer loop was tested in an earlier candidate with three players, but the
+current build has not received a complete regression covering server restarts, disconnects,
+recovery and dimension travel. Multiplayer is available as an experimental feature rather than
+fully verified server support. Back up the world before playing. The server and every client
+must use the exact same mod JAR.
 
-## Nowy świat lub nowy serwer
+## New world or server
 
-1. Zamknij Minecrafta i serwer.
-2. Usuń wszystkie starsze JAR-y Faded Pearl z aktywnego katalogu `mods` — pozostawienie dwóch
-   wersji jednocześnie może uniemożliwić uruchomienie gry.
-3. Umieść Faded Pearl, GeckoLib i SmartBrainLib w katalogu `mods`.
-4. Uruchom grę lub serwer i sprawdź w menu modów, czy Faded Pearl został załadowany.
-5. Na serwerze połącz klienta zawierającego ten sam zestaw wersji.
+1. Close Minecraft and stop the server.
+2. Remove every older Faded Pearl JAR from the active `mods` directory. Keeping two versions
+   installed at once may prevent the game from starting.
+3. Place Faded Pearl, GeckoLib and SmartBrainLib in the `mods` directory.
+4. Start the game or server and confirm that Faded Pearl appears in the mod list.
+5. For multiplayer, connect with a client using the same set of versions.
 
-Konfiguracja świata powstaje w `serverconfig/faded_pearl-server.toml`. Opis ustawień znajduje
-się w `docs/CONFIGURATION.md`. Plik najlepiej edytować przy wyłączonym świecie lub serwerze.
+World configuration is created at `serverconfig/faded_pearl-server.toml`. The available settings
+are described in `docs/CONFIGURATION.md`. Edit the file while the world or server is stopped.
 
-## Aktualizacja istniejącego świata
+## Updating an existing world
 
-Kandydaci `beta` służą do testów i nie powinni być pierwszą wersją uruchamianą na jedynej
-kopii ważnego świata.
+Beta builds are intended for testing and should not be opened first on the only copy of an
+important world.
 
-1. Zamknij grę albo zatrzymaj serwer i poczekaj na zakończenie zapisu.
-2. Skopiuj cały katalog świata w bezpieczne miejsce.
-3. Zachowaj poprzedni JAR Faded Pearl poza katalogiem `mods`.
-4. Usuń starszy JAR z każdego aktywnego katalogu `mods`, a następnie wstaw nowy JAR po stronie
-   serwera i wszystkich klientów.
-5. Pierwsze uruchomienie wykonaj na kopii świata.
-6. Sprawdź obecność właściwego Fade'a, jego imię, zaufanie, dom, dziennik i przedmiot
-   powierzony do obejrzenia.
-7. W multiplayerze sprawdź osobno towarzysza każdej osoby, a następnie restart serwera
-   i przejście przez portal.
+1. Close the game or stop the server and wait for saving to finish.
+2. Copy the entire world directory to a safe location.
+3. Keep the previous Faded Pearl JAR outside the `mods` directory.
+4. Remove the older JAR from every active `mods` directory, then install the new JAR on the
+   server and every client.
+5. Open a copy of the world first.
+6. Confirm the correct Fade, name, trust, home, Journal and any item entrusted for examination.
+7. In multiplayer, verify each player's companion separately, then test a server restart and a
+   portal transition.
 
-Jeżeli Fade zniknie, pojawi się druga kopia tej samej postaci albo zostanie przypisany do
-niewłaściwej osoby, nie zapisuj takiego stanu jako nowej kopii głównej. Zachowaj świat testowy
-i logi, wróć do kopii zapasowej oraz zgłoś użyte wersje i przebieg zdarzeń.
+If a Fade disappears, a duplicate of the same character appears, or a companion becomes bound
+to the wrong player, do not treat that state as the new primary save. Preserve the test world
+and logs, return to the backup, and report the versions and sequence of events.
 
-## Usuwanie lub cofanie wersji
+## Removing the mod or downgrading
 
-Nie należy usuwać moda ani wracać do starszego JAR-a na jedynej kopii świata, który został
-już zapisany przez nowszą wersję. Starszy kod może nie rozumieć nowych danych relacji.
-Bezpieczna droga powrotu to odtworzenie kopii świata wykonanej przed aktualizacją razem
-z odpowiadającym jej zestawem modów.
+Do not remove the mod or install an older JAR on the only copy of a world already saved by a
+newer version. Older code may not understand newer relationship data. A safe rollback restores
+both the world backup made before the update and the matching older mod set.
 
-## Stan wydania
+## Release status
 
-Aktualny publiczny build, pliki do pobrania i informacje o zmianach znajdują się na stronie
-[GitHub Releases](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases). Przed
-użyciem na ważnym świecie przeczytaj także [znane ograniczenia](KNOWN_LIMITATIONS.md).
+Current public builds, downloads and release notes are available on
+[GitHub Releases](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases). Read the
+[known limitations](KNOWN_LIMITATIONS.md) before using the beta in an important world.
 
-## Weryfikacja pobranego pliku
+## Verifying the download
 
-Porównaj nazwę, rozmiar i SHA-256 z informacją podaną przy konkretnym wydaniu. Przygotowany
-kandydat `faded_pearl-1.8.0-beta.3.jar` ma `1469680` bajtów i SHA-256
+Compare the file name, size and SHA-256 with the values published for the release. The prepared
+`faded_pearl-1.8.0-beta.3.jar` candidate is `1469680` bytes and has this SHA-256:
 `8D10D32A53D121CD7101AB3125902B6053B1BF189AE0901AAC47170BC01D9A56`.
 
 Windows PowerShell:

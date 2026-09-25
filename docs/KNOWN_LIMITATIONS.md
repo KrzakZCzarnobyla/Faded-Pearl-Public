@@ -1,38 +1,39 @@
-# Znane ograniczenia Faded Pearl 1.8.0-beta.3
+# Known limitations of Faded Pearl 1.8.0-beta.3
 
-Ten dokument odróżnia potwierdzone problemy od zakresu, którego jeszcze nie przetestowano.
+This document separates confirmed problems from areas that have not yet been fully tested.
 
-## Eksperymentalny multiplayer
+## Experimental multiplayer
 
-Podstawowa pętla wielu osobnych relacji została wcześniej potwierdzona w sesji trzech osób,
-ale `1.8.0-beta.3` nie przeszła pełnej regresji serwera dedykowanego obejmującej restart,
-wylogowanie jednej osoby, równoczesne recovery oraz przejścia wymiarowe kilku właścicielek.
-Nie jest to potwierdzony błąd, tylko niewykonany zakres testów. Przed grą wykonaj kopię świata
-i używaj identycznego JAR-a na serwerze oraz wszystkich klientach.
+The basic loop for separate player relationships was confirmed in an earlier three-player
+session, but `1.8.0-beta.3` has not received a complete dedicated-server regression covering
+restarts, one player disconnecting, simultaneous recovery and dimension travel by several
+owners. This is untested scope, not a confirmed defect. Back up the world before playing and
+use the exact same JAR on the server and every client.
 
-## Zgodność z innymi modami
+## Compatibility with other mods
 
-Kod nie wymaga JEI, Jade ani WTHIT do uruchomienia. Historyczny test JEI potwierdził
-widoczność receptur we wcześniejszym kandydacie, lecz pełna macierz runtime dokładnych wersji
-viewerów, nakładek, transportu i modów serializujących encje pozostaje otwarta dla beta.3.
-Brak wpisu na liście nie oznacza potwierdzonej niezgodności ani potwierdzonego wsparcia.
+Faded Pearl does not require JEI, Jade or WTHIT to start. An earlier JEI test confirmed recipe
+visibility in a previous candidate, but a complete runtime matrix for exact versions of recipe
+viewers, overlays, transport mods and entity-serialization mods remains open for beta.3. A mod
+not appearing here is neither a confirmed incompatibility nor confirmed support.
 
-## Wydajność
+## Performance
 
-Automatyczne testy i zwykła rozgrywka singleplayer nie wykazały awarii, ale porównawczy profil
-`0/1/10/25` aktywnych Fade'ów nie został jeszcze zaakceptowany. Duże serwery powinny traktować
-wydanie jako betę i obserwować TPS/MSPT, szczególnie przy wielu aktywnych relacjach.
+Automated tests and ordinary singleplayer sessions did not reveal a failure, but comparative
+profiling with `0/1/10/25` active Fades has not yet been accepted. Large servers should treat
+this build as a beta and monitor TPS/MSPT, especially with many active relationships.
 
-## Migracja
+## Migration
 
-Tymczasowy świat z wersji `1.4.1` zachował jedną postać, relację, Save/Quit, Perłę uniku,
-przejścia wymiarowe i recovery. Nie zapisano jednak kompletnego baseline każdego opcjonalnego
-pola przed pierwszym otwarciem, a końcowego logu po portalach i ostatnim recovery nie sprawdzono
-na prośbę właścicielki projektu. Pierwszy log migracji był czysty. Aktualizację ważnego świata
-nadal należy najpierw wykonać na kopii.
+A disposable world from version `1.4.1` preserved one companion, the relationship, Save/Quit,
+the Escape Pearl, dimension travel and recovery. However, a complete baseline for every optional
+field was not recorded before the first update, and the final log after portal travel and the
+last recovery case was not rechecked. The first migration log was clean. Always update a copy
+of an important world first.
 
-## Zgłaszanie problemu
+## Reporting a problem
 
-Przy zgłoszeniu podaj wersje Minecrafta, Forge, GeckoLib, SmartBrainLib i Faded Pearl, tryb
-singleplayer/serwer, opis ostatnich czynności oraz `latest.log`. Przy utracie lub duplikacji
-Fade'a zachowaj kopię świata i nie wykonuj kolejnych prób naprawy na jedynym ważnym zapisie.
+Include the Minecraft, Forge, GeckoLib, SmartBrainLib and Faded Pearl versions, whether the game
+was singleplayer or a server, the last actions performed, and `latest.log`. If a Fade is lost or
+duplicated, preserve a copy of the world and do not attempt further repairs on the only important
+save.

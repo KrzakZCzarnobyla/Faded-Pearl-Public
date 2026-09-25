@@ -1,34 +1,40 @@
-# Konfiguracja Faded Pearl
+# Configuring Faded Pearl
 
-Od wersji 1.7 najważniejsze parametry serwerowe znajdują się w pliku świata `serverconfig/faded_pearl-server.toml`. Na serwerze dedykowanym konfigurację zmienia administratorka; w singleplayerze plik należy do konkretnego świata. Edytuj go przy wyłączonym świecie lub serwerze; wartości są wczytywane przy następnym uruchomieniu świata.
+Since version 1.7, the main server-side settings are stored in the world's
+`serverconfig/faded_pearl-server.toml` file. On a dedicated server, the server administrator
+controls this file; in singleplayer, it belongs to that specific world. Edit it while the world
+or server is stopped. Values are loaded the next time the world starts.
 
-Wartości domyślne zachowują dotychczasowe zachowanie moda.
+The defaults preserve the mod's standard behaviour.
 
-## Spotkania w jaskiniach
+## Cave encounters
 
-| Klucz | Domyślnie | Zakres | Znaczenie |
+| Key | Default | Range | Meaning |
 |---|---:|---:|---|
-| `encounters.enabled` | `true` | `true/false` | Włącza naturalne pojawianie się rannych Fade'ów. |
-| `encounters.checkIntervalTicks` | `200` | `20–72000` | Odstęp między próbami; 20 ticków to sekunda. |
-| `encounters.maximumY` | `45` | `-64–320` | Gracz musi znajdować się na tej wysokości lub niżej. |
-| `encounters.minimumHorizontalSpacing` | `100` | `32–1024` | Minimalny poziomy odstęp między zapisanymi miejscami spotkań. |
+| `encounters.enabled` | `true` | `true/false` | Enables natural wounded Fade encounters. |
+| `encounters.checkIntervalTicks` | `200` | `20–72000` | Time between attempts; 20 ticks equal one second. |
+| `encounters.maximumY` | `45` | `-64–320` | The player must be at or below this height. |
+| `encounters.minimumHorizontalSpacing` | `100` | `32–1024` | Minimum horizontal spacing between recorded encounter locations. |
 
-Reguła jednej lokalnie połączonej części jaskini nadal obowiązuje niezależnie od minimalnego odstępu.
+The one-encounter-per-locally-connected-cave-area rule still applies independently of the
+minimum spacing value.
 
-## Zaufanie
+## Trust
 
-| Klucz | Domyślnie | Zakres | Znaczenie |
+| Key | Default | Range | Meaning |
 |---|---:|---:|---|
-| `trust.gainPercent` | `100` | `0–500` | Procentowa skala dodatnich zmian zaufania. `0` wyłącza przyrost. |
-| `trust.lossPercent` | `100` | `0–500` | Procentowa skala kar. `0` wyłącza utratę punktów. |
-| `trust.anchorRecallReward` | `1` | `0–10` | Bazowa nagroda za skuteczne przywołanie kotwicą, przed skalą przyrostu. |
+| `trust.gainPercent` | `100` | `0–500` | Percentage scale for positive trust changes. `0` disables gains. |
+| `trust.lossPercent` | `100` | `0–500` | Percentage scale for trust penalties. `0` disables losses. |
+| `trust.anchorRecallReward` | `1` | `0–10` | Base reward for a successful Anchor recall, before gain scaling. |
 
-Niezerowy procent zachowuje co najmniej jeden punkt dla zdarzenia, aby małe reakcje nie znikały przez zaokrąglenie.
+Any non-zero percentage preserves at least one point for an event, so small reactions are not
+lost through rounding.
 
 ## Recovery
 
-| Klucz | Domyślnie | Zakres | Znaczenie |
+| Key | Default | Range | Meaning |
 |---|---:|---:|---|
-| `recovery.graceSeconds` | `30` | `5–300` | Czas, przez który system czeka, zanim uzna brakującego towarzysza za wymagającego odtworzenia. |
+| `recovery.graceSeconds` | `30` | `5–300` | How long the system waits before treating a missing companion as requiring recovery. |
 
-Zbyt niski czas zwiększa ryzyko reakcji recovery podczas wolnego ładowania wymiaru. Zakres konfiguracji celowo nie pozwala ustawić mniej niż 5 sekund.
+A very short grace period increases the risk of recovery reacting while a dimension loads
+slowly. The configuration deliberately does not allow values below five seconds.
