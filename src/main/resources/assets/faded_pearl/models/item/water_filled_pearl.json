@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": { "layer0": "faded_pearl:item/water_filled_pearl" }
+}

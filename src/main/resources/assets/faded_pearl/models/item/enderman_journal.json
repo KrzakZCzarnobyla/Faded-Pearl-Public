@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "faded_pearl:item/enderman_journal_pearl"
+  }
+}

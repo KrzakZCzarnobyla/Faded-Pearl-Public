@@ -1,0 +1,74 @@
+{
+  "faded_enderman_cry": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_cry",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_cry",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  },
+  "faded_enderman_wounded_notice": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_wounded_notice",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_wounded_notice",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  },
+  "faded_enderman_cave_cry": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_cave_cry",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_cave_cry",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  },
+  "faded_enderman_ambient_1": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_ambient",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_ambient_1",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  },
+  "faded_enderman_ambient_2": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_ambient",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_ambient_2",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  },
+  "faded_enderman_ambient_3": {
+    "subtitle": "subtitles.faded_pearl.faded_enderman_ambient",
+    "sounds": [
+      {
+        "name": "faded_pearl:entity/faded_enderman_ambient_3",
+        "stream": false,
+        "volume": 1.0,
+        "pitch": 1.0,
+        "weight": 1
+      }
+    ]
+  }
+}

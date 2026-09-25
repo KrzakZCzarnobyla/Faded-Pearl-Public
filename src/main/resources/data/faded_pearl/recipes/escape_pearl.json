@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["MEM", "APA", "MCM"],
+  "key": {
+    "M": { "item": "minecraft:phantom_membrane" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "P": { "item": "minecraft:ender_pearl" },
+    "E": { "item": "minecraft:echo_shard" },
+    "C": { "item": "minecraft:crying_obsidian" }
+  },
+  "result": { "item": "faded_pearl:escape_pearl", "count": 1 }
+}

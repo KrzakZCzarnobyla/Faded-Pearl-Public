@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_water_filled_pearl": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": ["faded_pearl:water_filled_pearl"] }
+        ]
+      }
+    }
+  },
+  "requirements": [["has_water_filled_pearl"]],
+  "rewards": {
+    "recipes": ["faded_pearl:pulsating_pearl"]
+  }
+}

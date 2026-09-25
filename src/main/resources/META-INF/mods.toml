@@ -1,0 +1,38 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="All Rights Reserved"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Faded Pearl"
+description='''A lonely, wounded Enderman who can become your one true companion.'''
+
+[[dependencies.${mod_id}]]
+modId="forge"
+mandatory=true
+versionRange="${forge_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="minecraft"
+mandatory=true
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="geckolib"
+mandatory=true
+versionRange="${geckolib_version_range}"
+ordering="BEFORE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="smartbrainlib"
+mandatory=true
+versionRange="${smartbrainlib_version_range}"
+ordering="BEFORE"
+side="BOTH"

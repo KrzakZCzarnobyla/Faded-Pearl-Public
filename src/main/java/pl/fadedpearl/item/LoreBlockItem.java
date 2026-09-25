@@ -1,0 +1,27 @@
+package pl.fadedpearl.item;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+
+public final class LoreBlockItem extends BlockItem {
+    private final List<String> tooltipKeys;
+
+    public LoreBlockItem(Block block, Properties properties, String... tooltipKeys) {
+        super(block, properties);
+        this.tooltipKeys = List.of(tooltipKeys);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        for (String tooltipKey : tooltipKeys)
+            tooltip.add(Component.translatable(tooltipKey).withStyle(ChatFormatting.GRAY));
+    }
+}

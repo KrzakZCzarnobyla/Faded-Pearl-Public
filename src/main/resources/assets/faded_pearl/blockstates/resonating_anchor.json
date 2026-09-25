@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "active=false": { "model": "faded_pearl:block/resonating_anchor" },
+    "active=true": { "model": "faded_pearl:block/resonating_anchor" }
+  }
+}

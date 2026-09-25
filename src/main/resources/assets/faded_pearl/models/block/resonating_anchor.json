@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": { "all": "faded_pearl:block/resonating_anchor" }
+}
