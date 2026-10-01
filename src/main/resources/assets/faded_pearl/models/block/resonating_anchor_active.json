@@ -2,7 +2,7 @@
   "parent": "minecraft:block/block",
   "ambientocclusion": true,
   "textures": {
-    "particle": "minecraft:block/obsidian",
+    "particle": "faded_pearl:block/resonating_anchor",
     "base": "minecraft:block/obsidian",
     "accent": "minecraft:block/crying_obsidian",
     "core": "faded_pearl:block/resonating_anchor"
@@ -53,8 +53,8 @@
       "faces": {"down":{"texture":"#base"},"up":{"texture":"#accent"},"north":{"texture":"#base"},"south":{"texture":"#base"},"west":{"texture":"#base"},"east":{"texture":"#base"}}
     },
     {
-      "name": "resting_pearl", "from": [5, 4, 5], "to": [11, 10, 11],
-      "rotation": {"origin": [8, 7, 8], "axis": "y", "angle": 45, "rescale": true},
+      "name": "raised_pearl", "from": [5, 8, 5], "to": [11, 14, 11],
+      "rotation": {"origin": [8, 11, 8], "axis": "y", "angle": -45, "rescale": true},
       "shade": false,
       "faces": {"down":{"texture":"#core"},"up":{"texture":"#core"},"north":{"texture":"#core"},"south":{"texture":"#core"},"west":{"texture":"#core"},"east":{"texture":"#core"}}
     }

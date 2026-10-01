@@ -21,10 +21,16 @@ public final class JournalMemory {
         BEHAVIOR_WEATHER_REACTION,
         BEHAVIOR_SHARED_SHELTER,
         BEHAVIOR_SOCIAL_REPOSITION,
+        BEHAVIOR_SHARED_GAZE,
+        BEHAVIOR_REST_NEAR,
+        BEHAVIOR_WORLD_KNOWLEDGE,
         BASIC_FADE_ORIGIN,
         BEHAVIOR_ANIMAL_CARRY,
         ESCAPE_PEARL_PLAYER_HIT,
-        ESCAPE_PEARL_ENDER_PEARL_HELD
+        ESCAPE_PEARL_ENDER_PEARL_HELD,
+        BEHAVIOR_WORLD_CRAFT,
+        BEHAVIOR_NIGHT_WATCH,
+        BEHAVIOR_REUNION
     }
 
     private final EnumSet<Discovery> discoveries = EnumSet.noneOf(Discovery.class);

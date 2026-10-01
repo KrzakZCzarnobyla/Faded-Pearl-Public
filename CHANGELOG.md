@@ -2,9 +2,35 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [1.9.0-beta.1] — public community beta
 
-No public changes have been announced after `1.8.0-beta.3`.
+This candidate is approved for public community testing. Automated regression, copied-world
+migration and controlled ambient-routine triggers pass; the remaining observational cases are
+listed as open rather than treated as verified.
+
+### Added
+
+- calm companion routines: shared gaze, resting near the bonded player and settling near home;
+- autonomous interest in knowledge and crafting blocks, with safe pathing and Journal guidance;
+- relationship memories for repeated discoveries, villages, diamonds, animals, building, armour,
+  reunions after absence and completed night watches;
+- five persistent story memories connected with the End portal, the dragon, its egg and return;
+- a redesigned Resonating Anchor with separate inactive and active presentations.
+
+### Changed
+
+- new contextual behaviour yields to combat, rescue, carrying, recovery, hazards and commands;
+- multiplayer expansion and full dedicated-server regression are deferred to version 2.5;
+- the development client now applies GeckoLib mixins through pinned MixinGradle `0.7.38`.
+
+### QA status
+
+- automated regression, resource validation and development-client startup pass;
+- copied-world migration, Save/Quit and Overworld–Nether round trips pass;
+- recovery loss simulation, full End-memory flow, presentation frequency and several interruption
+  cases remain open for beta testing;
+- multiplayer remains experimental and its full regression is deferred to version 2.5;
+- `1.8.0-beta.3` remains unchanged.
 
 ## [1.8.0-beta.3] — public beta
 

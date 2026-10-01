@@ -70,6 +70,7 @@ import net.minecraft.util.Mth;
 import net.minecraftforge.common.util.ITeleporter;
 import pl.fadedpearl.item.PulsatingPearlItem;
 import pl.fadedpearl.entity.dialogue.FadedDialogue;
+import pl.fadedpearl.entity.dialogue.FadedRelationshipDialoguePolicy;
 import pl.fadedpearl.entity.dialogue.NameLearningMemory;
 import pl.fadedpearl.entity.dialogue.WorldAwarenessMemory;
 import pl.fadedpearl.entity.journal.EndermanJournalPolicy;
@@ -79,6 +80,13 @@ import pl.fadedpearl.entity.journal.JournalNotificationPolicy;
 import pl.fadedpearl.entity.behavior.FadedGestureDetector;
 import pl.fadedpearl.entity.behavior.FadedWeatherDetector;
 import pl.fadedpearl.entity.behavior.CompanionLivelinessPolicy;
+import pl.fadedpearl.entity.behavior.FadedAmbientRoutinePlanner;
+import pl.fadedpearl.entity.behavior.FadedArmorProgressPolicy;
+import pl.fadedpearl.entity.behavior.FadedNightWatchPolicy;
+import pl.fadedpearl.entity.behavior.FadedReunionPolicy;
+import pl.fadedpearl.entity.behavior.FadedEndEchoPolicy;
+import pl.fadedpearl.entity.behavior.FadedWorldInterestPolicy;
+import pl.fadedpearl.entity.behavior.FadedWorldInterestCatalog;
 import pl.fadedpearl.entity.animation.FadedAnimationState;
 import pl.fadedpearl.entity.interaction.FadedInteractionHandler;
 import pl.fadedpearl.entity.movement.FadedMovementCoordinator;
@@ -232,6 +240,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     private long lastCarriedBlinkRequestTick = Long.MIN_VALUE;
     private int trust;
     private long lastFriendSeenTime;
+    private boolean reunionPending;
+    private int reunionPendingTicks;
     private long lastAffectionClick;
     private BlockPos homePos;
     private ResourceKey<Level> homeDimension;
@@ -282,7 +292,10 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     private boolean awarenessBaselineInitialized;
     private boolean friendHadDiamond;
     private boolean friendHadEnderPearl;
-    private int friendArmorValue;
+    private int friendArmorHighWater;
+    private boolean friendWasInVillage;
+    private boolean villageEntryPending;
+    private BlockPos lastVisibleDiamondOre;
     private int curiosityHintDelay;
     private boolean curiosityHintPending;
     private long lastDialogueTick = Long.MIN_VALUE;
@@ -295,10 +308,29 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     private Path socialRepositionPath;
     private boolean socialRepositionStarted;
     private boolean socialRepositionWatchFriend;
+    private Vec3 ambientSharedGazeTarget;
+    private int ambientCalmTicks;
+    private int homeSettleCalmTicks;
+    private boolean ambientRestNearActive;
+    private int worldInterestCooldown = 600;
+    private int worldInterestTicks;
+    private WorldInterestPhase worldInterestPhase = WorldInterestPhase.NONE;
+    private FadedWorldInterestCatalog.Category worldInterestCategory;
+    private BlockPos worldInterestTarget;
+    private BlockPos worldInterestDestination;
+    private BlockPos lastWorldInterestTarget;
+    private Path worldInterestPath;
+    private boolean worldInterestPathStarted;
+    private boolean worldInterestOwnerInteraction;
+    private FadedNightWatchPolicy.State nightWatchState = FadedNightWatchPolicy.State.initial();
+    private FadedEndEchoPolicy.Reaction pendingEndEcho;
+    private int pendingEndEchoTicks;
+    private int endEchoRetryCooldown;
 
     private enum CuriosityPhase {
         NONE, POINT_HAND, APPROACH_GROUND, POINT_GROUND, INSPECT_GROUND, INSPECT, RETURN_PENDING
     }
+    private enum WorldInterestPhase { NONE, APPROACH, INSPECT }
     private final FadedMovementCoordinator movementCoordinator = new FadedMovementCoordinator();
     private FadedMovementCoordinator.State movementState = FadedMovementCoordinator.State.initial();
     private CompanionCommand movementCommand = CompanionCommand.FOLLOW;
@@ -332,6 +364,9 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             BlockPos recoveryLanding,
             FadedMovementCoordinator.RecoveryOutcome recoveryOutcome) {}
     private record DryRoute(BlockPos destination, Path path) {}
+    private record WorldInterestCandidate(FadedWorldInterestCatalog.Category category, BlockPos target) {}
+    private record WorldInterestRoute(
+            FadedWorldInterestCatalog.Category category, BlockPos target, BlockPos destination, Path path) {}
     private record PendingDialogue(UUID playerId, FadedDialogue.Descriptor dialogue, String visibleName) {}
     private enum ImmediateStopIntent { INTERACTION_LATCH, COMMAND_TRANSITION }
 
@@ -349,7 +384,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         PLAYFUL_TELEPORT, NIGHT_CLOSE, SOUND_ALERT, BRING_FLOWER, AFFECTION, HUG, GUARD,
         JUMP_REACT, CROUCH, STARE_FREEZE, STARE_TILT, TOUCH_RECOIL, TOUCH_HESITATE,
         RAIN_SHELTER, RAIN_SHIVER, DOWNED_RECOVER, CHEST_EXPOSE, EMBRACE_READY,
-        NIGHT_GAZE, SNOW_CATCH, WATCH_SLEEPING, ITEM_POINT, ITEM_INSPECT
+        NIGHT_GAZE, SNOW_CATCH, WATCH_SLEEPING, ITEM_POINT, ITEM_INSPECT, HOME_SETTLE
     }
 
     public enum TrustStage {
@@ -801,8 +836,16 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         return isHealed() && !isDowned() && !isVehicle() && !interactionMovementStopLatched
                 && getCommand() == CompanionCommand.FOLLOW
                 && friend != null && distanceToSqr(friend) <= 64.0D && socialActionTicks <= 0
-                && curiosityPhase == CuriosityPhase.NONE && socialRepositionTarget == null
+                && !reservesBrainExploreForAmbientRoutine(friend)
+                && curiosityPhase == CuriosityPhase.NONE && worldInterestPhase == WorldInterestPhase.NONE
+                && socialRepositionTarget == null
                 && !shouldPauseFollowForWater(friend) && !level().isRainingAt(blockPosition());
+    }
+
+    private boolean reservesBrainExploreForAmbientRoutine(Player friend) {
+        if (friend == null || !hasCalmAmbientFriend(friend)) return false;
+        return FadedAmbientRoutinePlanner.canAccumulateRestNear(trust, distanceToSqr(friend))
+                || findSharedGazeTarget(friend) != null;
     }
 
     private void queueBrainMemoryCandidates() {
@@ -813,7 +856,17 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                     () -> applyLookAt(position));
         });
 
-        if (!canBrainExplore()) return;
+        if (!canBrainExplore()) {
+            Player friend = getFriendPlayer();
+            if (reservesBrainExploreForAmbientRoutine(friend)) {
+                getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+                getBrain().eraseMemory(MemoryModuleType.PATH);
+                if (!getNavigation().isDone())
+                    queueStop(FadedMovementCoordinator.Locomotion.AMBIENT_REST,
+                            "yield brain exploration to ambient rest");
+            }
+            return;
+        }
         Optional<WalkTarget> walkTarget = getBrain().getMemory(MemoryModuleType.WALK_TARGET);
         walkTarget.ifPresent(target -> {
             BlockPos destination = target.getTarget().currentBlockPosition();
@@ -862,6 +915,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         boolean mainHand = hand == InteractionHand.MAIN_HAND;
         boolean clientSide = level().isClientSide();
         boolean serverPlayerPresent = player instanceof ServerPlayer;
+        if (mainHand && !clientSide && serverPlayerPresent && isFriend(player))
+            worldInterestOwnerInteraction = true;
         if (mainHand && player.getItemInHand(hand).is(Items.BOOK)) {
             if (clientSide) return InteractionResult.SUCCESS;
             if (serverPlayerPresent && isHealed() && !isDowned() && isFriend(player))
@@ -1197,40 +1252,61 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         if (!awarenessBaselineInitialized) {
             friendHadDiamond = hasDiamond;
             friendHadEnderPearl = hasEnderPearl;
-            friendArmorValue = armor;
+            friendArmorHighWater = armor;
             awarenessBaselineInitialized = true;
         }
         else if (distanceToSqr(friend) <= 400.0D && hasLineOfSight(friend)) {
             boolean reacted = false;
             if (!friendHadDiamond && hasDiamond)
-                reacted = observeAwareness(WorldAwarenessMemory.Milestone.PLAYER_DIAMOND,
-                        FadedDialogue.Category.AWARE_PLAYER_DIAMOND, SocialAction.CURIOUS, 0);
+                reacted = observeRelationshipAwareness(WorldAwarenessMemory.Milestone.PLAYER_DIAMOND,
+                        FadedRelationshipDialoguePolicy.Context.PLAYER_DIAMOND, SocialAction.CURIOUS);
             if (!reacted && !friendHadEnderPearl && hasEnderPearl)
                 reacted = observeAwareness(WorldAwarenessMemory.Milestone.ENDER_PEARL,
                         FadedDialogue.Category.AWARE_ENDER_PEARL, SocialAction.WORRIED, 0);
-            if (!reacted && friendArmorValue > 0 && armor > friendArmorValue)
-                reacted = observeAwareness(WorldAwarenessMemory.Milestone.ARMOR_UPGRADE,
-                        FadedDialogue.Category.AWARE_ARMOR_UPGRADE, SocialAction.CURIOUS, 0);
+            if (!reacted && FadedArmorProgressPolicy.isUpgrade(friendArmorHighWater, armor))
+                reacted = observeRelationshipAwareness(WorldAwarenessMemory.Milestone.ARMOR_UPGRADE,
+                        FadedRelationshipDialoguePolicy.Context.ARMOR_UPGRADE, SocialAction.CURIOUS);
             if (reacted) {
                 friendHadDiamond = hasDiamond;
                 friendHadEnderPearl = hasEnderPearl;
-                friendArmorValue = armor;
+                friendArmorHighWater = FadedArmorProgressPolicy.nextMaximum(friendArmorHighWater, armor);
                 return;
             }
         }
         friendHadDiamond = hasDiamond;
         friendHadEnderPearl = hasEnderPearl;
-        friendArmorValue = armor;
+        friendArmorHighWater = FadedArmorProgressPolicy.nextMaximum(friendArmorHighWater, armor);
 
+        boolean friendInVillage = level() instanceof ServerLevel serverLevel
+                && serverLevel.isVillage(friend.blockPosition());
+        if (!friendInVillage) {
+            friendWasInVillage = false;
+            villageEntryPending = false;
+        }
+        else if (!friendWasInVillage) {
+            friendWasInVillage = true;
+            villageEntryPending = true;
+        }
         if (distanceToSqr(friend) > 400.0D || !hasLineOfSight(friend)) return;
-        if (level() instanceof ServerLevel serverLevel && serverLevel.isVillage(friend.blockPosition())
-                && observeAwareness(WorldAwarenessMemory.Milestone.VILLAGE,
-                FadedDialogue.Category.AWARE_VILLAGE, SocialAction.LOOK_AROUND, 0)) return;
-        if (tickCount % 100 == 0
-                && !worldAwarenessMemory.hasSeen(WorldAwarenessMemory.Milestone.ENDERMAN_DIAMOND)
-                && findVisibleDiamondOre() != null
-                && observeAwareness(WorldAwarenessMemory.Milestone.ENDERMAN_DIAMOND,
-                FadedDialogue.Category.AWARE_ENDERMAN_DIAMOND, SocialAction.ITEM_POINT, 0)) return;
+        if (villageEntryPending) {
+            villageEntryPending = false;
+            if (observeRelationshipAwareness(WorldAwarenessMemory.Milestone.VILLAGE,
+                    FadedRelationshipDialoguePolicy.Context.VILLAGE, SocialAction.LOOK_AROUND)) return;
+        }
+        if (tickCount % 100 == 0) {
+            BlockPos visibleDiamondOre = findVisibleDiamondOre();
+            boolean newlyVisibleDiamondOre = visibleDiamondOre != null
+                    && !visibleDiamondOre.equals(lastVisibleDiamondOre);
+            if (newlyVisibleDiamondOre) {
+                lastVisibleDiamondOre = visibleDiamondOre;
+                if (observeRelationshipAwareness(WorldAwarenessMemory.Milestone.ENDERMAN_DIAMOND,
+                        FadedRelationshipDialoguePolicy.Context.ENDERMAN_DIAMOND, SocialAction.ITEM_POINT)) {
+                    queueLookAt(Vec3.atCenterOf(visibleDiamondOre), 30.0F, 30.0F,
+                            "world awareness diamond ore");
+                    return;
+                }
+            }
+        }
         if (tickCount % 100 == 0 && !worldAwarenessMemory.hasSeen(WorldAwarenessMemory.Milestone.PET_SMALL_ANIMAL)) {
             Animal small = level().getEntitiesOfClass(Animal.class, getBoundingBox().inflate(8.0D),
                     animal -> animal.isAlive() && (animal.isBaby()
@@ -1259,10 +1335,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                     && !level().getBlockState(pos).is(Blocks.DEEPSLATE_DIAMOND_ORE)) continue;
             BlockHitResult hit = level().clip(new ClipContext(getEyePosition(), Vec3.atCenterOf(pos),
                     ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
-            if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pos)) {
-                queueLookAt(Vec3.atCenterOf(pos), 30.0F, 30.0F, "world awareness diamond ore");
-                return pos.immutable();
-            }
+            if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pos)) return pos.immutable();
         }
         return null;
     }
@@ -1271,33 +1344,37 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         if (level().isClientSide || !isHealed() || !isFriend(owner) || animal.level() != level()
                 || distanceToSqr(animal) > 400.0D || !hasLineOfSight(animal)) return;
         WorldAwarenessMemory.Milestone milestone;
-        FadedDialogue.Category category;
+        FadedRelationshipDialoguePolicy.Context context;
         if (animal instanceof Wolf) {
             milestone = WorldAwarenessMemory.Milestone.TAMED_WOLF;
-            category = FadedDialogue.Category.AWARE_TAMED_WOLF;
+            context = FadedRelationshipDialoguePolicy.Context.TAMED_WOLF;
         }
         else if (animal instanceof Cat) {
             milestone = WorldAwarenessMemory.Milestone.TAMED_CAT;
-            category = FadedDialogue.Category.AWARE_TAMED_CAT;
+            context = FadedRelationshipDialoguePolicy.Context.TAMED_CAT;
         }
         else if (animal instanceof Parrot) {
             milestone = WorldAwarenessMemory.Milestone.TAMED_PARROT;
-            category = FadedDialogue.Category.AWARE_TAMED_PARROT;
+            context = FadedRelationshipDialoguePolicy.Context.TAMED_PARROT;
         }
         else {
             milestone = WorldAwarenessMemory.Milestone.TAMED_OTHER;
-            category = FadedDialogue.Category.AWARE_TAMED_OTHER;
+            context = FadedRelationshipDialoguePolicy.Context.TAMED_OTHER;
         }
         queueLookAt(animal, 25.0F, 25.0F, "world awareness tamed animal");
-        int reward = worldAwarenessMemory.markFirst(WorldAwarenessMemory.Milestone.TAMED_ANY) ? 1 : 0;
-        observeAwareness(milestone, category, SocialAction.AFFECTION, reward);
+        boolean firstTamedAnimal = worldAwarenessMemory.markFirst(WorldAwarenessMemory.Milestone.TAMED_ANY);
+        observeRelationshipAwareness(milestone, context, SocialAction.AFFECTION);
+        if (firstTamedAnimal) addTrust(1);
     }
 
     public void observeCompletedBuild(Player builder) {
         if (level().isClientSide || !isHealed() || !isFriend(builder) || builder.level() != level()
                 || distanceToSqr(builder) > 576.0D || !hasLineOfSight(builder)) return;
-        observeAwareness(WorldAwarenessMemory.Milestone.BUILD_COMPLETED,
-                FadedDialogue.Category.AWARE_BUILD, SocialAction.LOOK_AROUND, 1);
+        boolean firstCompletedBuild = !worldAwarenessMemory.hasSeen(
+                WorldAwarenessMemory.Milestone.BUILD_COMPLETED);
+        boolean reacted = observeRelationshipAwareness(WorldAwarenessMemory.Milestone.BUILD_COMPLETED,
+                FadedRelationshipDialoguePolicy.Context.BUILD, SocialAction.LOOK_AROUND);
+        if (firstCompletedBuild && reacted) addTrust(1);
     }
 
     private boolean observeAwareness(WorldAwarenessMemory.Milestone milestone, FadedDialogue.Category category,
@@ -1310,6 +1387,22 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         socialActionCooldown = Math.max(socialActionCooldown, 200);
         sayRandom(serverPlayer, category);
         if (trustReward > 0) addTrust(trustReward);
+        return true;
+    }
+
+    private boolean observeRelationshipAwareness(WorldAwarenessMemory.Milestone milestone,
+                                                 FadedRelationshipDialoguePolicy.Context context,
+                                                 SocialAction action) {
+        boolean firstDiscovery = worldAwarenessMemory.markFirst(milestone);
+        Player friend = getFriendPlayer();
+        ServerPlayer serverFriend = friend instanceof ServerPlayer player ? player : null;
+        FadedRelationshipDialoguePolicy.Selection selection = FadedRelationshipDialoguePolicy.select(
+                context, serverFriend != null, firstDiscovery, trust, random::nextInt);
+        if (serverFriend == null || selection == FadedRelationshipDialoguePolicy.Selection.NONE) return false;
+        setSocialAction(action);
+        socialActionTicks = 80;
+        socialActionCooldown = Math.max(socialActionCooldown, 200);
+        sayRandom(serverFriend, FadedDialogue.relationshipMemory(selection));
         return true;
     }
 
@@ -1446,11 +1539,18 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         if (!level().isClientSide) tickSmallAnimalCarry();
         if (!level().isClientSide && isHealed() && isInWaterOrBubble()) escapeWaterToDryLand();
         if (!level().isClientSide && isHealed()) tickItemCuriosity();
+        if (!level().isClientSide && isHealed()) tickWorldInterest();
         if (!level().isClientSide && isHealed()) {
             nameLearningMemory.tickRepeatCooldown();
+            nameLearningMemory.tickPetRepeatCooldown();
             tickNameLearning();
         }
-        if (!level().isClientSide && isHealed() && curiosityPhase == CuriosityPhase.NONE) tickSocialBehavior();
+        boolean endEchoReaction = !level().isClientSide && isHealed() && tickEndEchoes();
+        boolean nightWatchReaction = !endEchoReaction && !level().isClientSide
+                && isHealed() && tickNightWatchCycle();
+        if (!level().isClientSide && isHealed() && !endEchoReaction && !nightWatchReaction
+                && curiosityPhase == CuriosityPhase.NONE && worldInterestPhase == WorldInterestPhase.NONE)
+            tickSocialBehavior();
         if (!level().isClientSide && isHealed()) tickCarryingState();
         if (!level().isClientSide) syncCarryAnimationMovement();
         if (!level().isClientSide && isHealed()) {
@@ -1627,7 +1727,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
 
         if (tickCount % SmallAnimalCarryPolicy.SEARCH_INTERVAL_TICKS != 0) return;
         boolean busy = isVehicle() || getCarryAction() != CarryAction.NONE || socialRepositionTarget != null
-                || curiosityPhase != CuriosityPhase.NONE
+                || curiosityPhase != CuriosityPhase.NONE || worldInterestPhase != WorldInterestPhase.NONE
                 || !curiosityStack.isEmpty() || getSocialAction() != SocialAction.NONE
                 || entityData.get(HEALING_TICKS) > 0 || interactionMovementStopLatched;
         if (!SmallAnimalCarryPolicy.canStart(new SmallAnimalCarryPolicy.Context(
@@ -1730,6 +1830,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                         && monster.distanceToSqr(friend) <= 784.0D).isPresent();
         boolean higherPriorityAction = entityData.get(HEALING_TICKS) > 0
                 || curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty()
+                || worldInterestPhase != WorldInterestPhase.NONE
                 || isVehicle() || getCarryAction() != CarryAction.NONE || hadCarriedPassenger
                 || isFriendRescueActive() || getTarget() != null || isAggressive()
                 || getActiveHostileReactionTarget() != null || visibleThreat
@@ -1747,29 +1848,45 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             return;
         }
 
-        if (CompanionPerformancePolicy.isCadenceTick(tickCount, getId(),
-                CompanionPerformancePolicy.NAMED_PET_SCAN_TICKS)) {
-            TamableAnimal namedPet = level().getEntitiesOfClass(TamableAnimal.class,
-                            getBoundingBox().inflate(12.0D), animal -> animal.isAlive() && animal.hasCustomName()
-                                    && serverFriend.getUUID().equals(animal.getOwnerUUID())
-                                    && distanceToSqr(animal) <= 144.0D
-                                    && hasLineOfSight(animal)
-                                    && nameLearningMemory.isNewPetName(animal.getUUID(),
-                                    animal.getCustomName().getString()))
-                    .stream().min(java.util.Comparator.comparingDouble(this::distanceToSqr)).orElse(null);
-            if (namedPet != null) {
-                String petName = NameLearningMemory.sanitizeName(namedPet.getCustomName().getString());
-                nameLearningMemory.rememberPet(namedPet.getUUID(), petName);
-                startNameReaction(serverFriend, namedPet, FadedDialogue.Category.NAMED_PET, petName,
-                        "learn named pet");
-                return;
-            }
-        }
-
         boolean calmForRepeat = NameLearningMemory.isCalmForRepeat(onGround(),
                 isInWaterOrBubble() || isOnFire() || level().isRainingAt(blockPosition()),
                 shouldRun() || getDeltaMovement().horizontalDistanceSqr() > 0.0025D
                         || !pendingLocomotion.isEmpty(), !getNavigation().isDone());
+        if (CompanionPerformancePolicy.isCadenceTick(tickCount, getId(),
+                CompanionPerformancePolicy.NAMED_PET_SCAN_TICKS)) {
+            var visibleNamedPets = level().getEntitiesOfClass(TamableAnimal.class,
+                            getBoundingBox().inflate(12.0D), animal -> animal.isAlive() && animal.hasCustomName()
+                                    && serverFriend.getUUID().equals(animal.getOwnerUUID())
+                                    && distanceToSqr(animal) <= 144.0D
+                                    && hasLineOfSight(animal));
+            TamableAnimal namedPet = visibleNamedPets.stream()
+                    .filter(animal -> nameLearningMemory.isNewPetName(animal.getUUID(),
+                            animal.getCustomName().getString()))
+                    .min(java.util.Comparator.comparingDouble(this::distanceToSqr)).orElse(null);
+            if (namedPet != null) {
+                String petName = NameLearningMemory.sanitizeName(namedPet.getCustomName().getString());
+                nameLearningMemory.rememberPet(namedPet.getUUID(), petName, random::nextInt);
+                startNameReaction(serverFriend, namedPet, FadedDialogue.Category.NAMED_PET, petName,
+                        "learn named pet");
+                return;
+            }
+            if (calmForRepeat && socialActionCooldown <= 0) {
+                TamableAnimal knownPet = visibleNamedPets.stream()
+                        .filter(animal -> nameLearningMemory.canRepeatPetName(animal.getUUID(),
+                                animal.getCustomName().getString()))
+                        .min(java.util.Comparator.comparingDouble(this::distanceToSqr)).orElse(null);
+                if (knownPet != null) {
+                    String petName = NameLearningMemory.sanitizeName(knownPet.getCustomName().getString());
+                    nameLearningMemory.resetPetRepeatCooldown(random::nextInt);
+                    FadedDialogue.Category category = trust >= FadedRelationshipDialoguePolicy.BONDED_MIN_TRUST
+                            ? FadedDialogue.Category.NAMED_PET_REPEAT_BONDED
+                            : FadedDialogue.Category.NAMED_PET_REPEAT_LEARNING;
+                    startNameReaction(serverFriend, knownPet, category, petName, "repeat named pet");
+                    return;
+                }
+            }
+        }
+
         if (calmForRepeat && socialActionCooldown <= 0 && nameLearningMemory.canRepeatOwnName(ownName)) {
             nameLearningMemory.resetRepeatCooldown(random::nextInt);
             startNameReaction(serverFriend, friend, FadedDialogue.Category.NAME_REPEAT, ownName,
@@ -1894,20 +2011,225 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         entityData.set(SEATED_YAW_SET, true);
     }
 
+    private boolean tickEndEchoes() {
+        if (!(level() instanceof ServerLevel serverLevel)) return false;
+        Player friend = getFriendPlayer();
+        boolean sharedContact = friend instanceof ServerPlayer serverFriend
+                && friend.isAlive() && !friend.isSpectator() && friend.level() == level()
+                && distanceToSqr(friend) <= FadedEndEchoPolicy.MAX_SHARED_DISTANCE_SQR
+                && hasLineOfSight(friend);
+        FadedEndEchoPolicy.DragonState dragonState = authoritativeDragonState(serverLevel);
+        boolean togetherInEnd = sharedContact && serverLevel.dimension() == Level.END;
+        if (togetherInEnd && dragonState == FadedEndEchoPolicy.DragonState.LIVE_FIRST_FIGHT)
+            worldAwarenessMemory.markFirst(WorldAwarenessMemory.Milestone.END_DRAGON_LIVE_WITNESSED);
+
+        if (endEchoRetryCooldown > 0) endEchoRetryCooldown--;
+        if (pendingEndEcho == null && endEchoRetryCooldown <= 0) {
+            boolean scanEndPortal = FadedEndEchoPolicy.shouldScanEndPortal(
+                    worldAwarenessMemory.snapshot(), sharedContact,
+                    serverLevel.dimension() == Level.OVERWORLD, tickCount);
+            FadedEndEchoPolicy.Observation observation = endEchoObservation(
+                    serverLevel, friend, sharedContact, dragonState, scanEndPortal);
+            pendingEndEcho = FadedEndEchoPolicy.select(observation, worldAwarenessMemory.snapshot())
+                    .orElse(null);
+            pendingEndEchoTicks = 0;
+        }
+        if (pendingEndEcho == null) return false;
+
+        Set<WorldAwarenessMemory.Milestone> endEchoMemory = worldAwarenessMemory.snapshot();
+        if (endEchoMemory.contains(FadedEndEchoPolicy.milestone(pendingEndEcho))) {
+            clearPendingEndEcho(0);
+            return false;
+        }
+        FadedEndEchoPolicy.Observation currentContext = endEchoObservation(
+                serverLevel, friend, sharedContact, dragonState, false);
+        if (!FadedEndEchoPolicy.contextPresent(pendingEndEcho, currentContext, endEchoMemory)) {
+            clearPendingEndEcho(200);
+            return false;
+        }
+
+        FadedEndEchoPolicy.PendingDecision decision = FadedEndEchoPolicy.advancePending(
+                pendingEndEchoTicks, isEndEchoReactionSafe(friend, sharedContact));
+        if (decision == FadedEndEchoPolicy.PendingDecision.WAIT) {
+            pendingEndEchoTicks++;
+            return false;
+        }
+        if (decision == FadedEndEchoPolicy.PendingDecision.CANCEL) {
+            clearPendingEndEcho(200);
+            return false;
+        }
+        if (!(friend instanceof ServerPlayer serverFriend)) {
+            clearPendingEndEcho(200);
+            return false;
+        }
+
+        FadedEndEchoPolicy.Reaction reaction = pendingEndEcho;
+        FadedEndEchoPolicy.Observation completionContext = reaction == FadedEndEchoPolicy.Reaction.END_PORTAL
+                ? endEchoObservation(serverLevel, friend, sharedContact, dragonState, true)
+                : currentContext;
+        if (!FadedEndEchoPolicy.stillRelevant(reaction, completionContext, endEchoMemory)) {
+            clearPendingEndEcho(200);
+            return false;
+        }
+        clearPendingEndEcho(0);
+        if (!worldAwarenessMemory.markFirst(FadedEndEchoPolicy.milestone(reaction))) return false;
+        SocialAction action = switch (reaction) {
+            case END_PORTAL, END_ARRIVAL_LIVE, DRAGON_EGG -> SocialAction.WORRIED;
+            case END_ARRIVAL_DEFEATED, DRAGON_DEFEATED -> SocialAction.LOOK_AROUND;
+            case END_RETURN -> SocialAction.AFFECTION;
+        };
+        FadedDialogue.Category dialogue = switch (reaction) {
+            case END_PORTAL -> FadedDialogue.Category.END_PORTAL;
+            case END_ARRIVAL_LIVE -> FadedDialogue.Category.END_ARRIVAL_LIVE;
+            case END_ARRIVAL_DEFEATED -> FadedDialogue.Category.END_ARRIVAL_DEFEATED;
+            case DRAGON_DEFEATED -> FadedDialogue.Category.END_DRAGON_DEFEATED;
+            case DRAGON_EGG -> FadedDialogue.Category.END_DRAGON_EGG;
+            case END_RETURN -> FadedDialogue.Category.END_RETURN;
+        };
+        setSocialAction(action);
+        socialActionTicks = 80;
+        socialActionCooldown = Math.max(socialActionCooldown, 200);
+        queueLookAt(serverFriend, 25.0F, 25.0F, "echoes of the end reaction");
+        sayRandom(serverFriend, dialogue);
+        return true;
+    }
+
+    private FadedEndEchoPolicy.Observation endEchoObservation(
+            ServerLevel serverLevel,
+            Player friend,
+            boolean sharedContact,
+            FadedEndEchoPolicy.DragonState dragonState,
+            boolean scanEndPortal
+    ) {
+        boolean togetherInOverworld = sharedContact && serverLevel.dimension() == Level.OVERWORLD;
+        return new FadedEndEchoPolicy.Observation(
+                scanEndPortal && togetherInOverworld && findVisibleEndThreshold() != null,
+                sharedContact && serverLevel.dimension() == Level.END,
+                dragonState,
+                sharedContact && inventoryContains(friend, Items.DRAGON_EGG),
+                togetherInOverworld);
+    }
+
+    private FadedEndEchoPolicy.DragonState authoritativeDragonState(ServerLevel serverLevel) {
+        if (serverLevel.dimension() != Level.END || serverLevel.getDragonFight() == null)
+            return FadedEndEchoPolicy.DragonState.UNAVAILABLE;
+        return serverLevel.getDragonFight().hasPreviouslyKilledDragon()
+                ? FadedEndEchoPolicy.DragonState.PREVIOUSLY_DEFEATED
+                : FadedEndEchoPolicy.DragonState.LIVE_FIRST_FIGHT;
+    }
+
+    private BlockPos findVisibleEndThreshold() {
+        BlockPos origin = blockPosition();
+        for (BlockPos candidate : BlockPos.betweenClosed(
+                origin.offset(-8, -4, -8), origin.offset(8, 4, 8))) {
+            if (candidate.distSqr(origin) > 80.0D || !level().hasChunkAt(candidate)) continue;
+            net.minecraft.world.level.block.state.BlockState state = level().getBlockState(candidate);
+            if (!state.is(Blocks.END_PORTAL_FRAME) && !state.is(Blocks.END_PORTAL)) continue;
+            BlockHitResult hit = level().clip(new ClipContext(getEyePosition(), Vec3.atCenterOf(candidate),
+                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+            if (hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(candidate))
+                return candidate.immutable();
+        }
+        return null;
+    }
+
+    private boolean isEndEchoReactionSafe(Player friend, boolean sharedContact) {
+        return sharedContact && friend != null && tickCount >= 40
+                && !isDowned() && entityData.get(HEALING_TICKS) <= 0
+                && getCommand() != CompanionCommand.REST && getCommand() != CompanionCommand.HOME
+                && getSocialAction() == SocialAction.NONE
+                && !isFriendRescueActive() && getTarget() == null && !isAggressive()
+                && selfDefenseTarget == null && hostileReactionTarget == null && dangerSoundTicks <= 0
+                && !hasCuriosityThreat(friend)
+                && !isInWaterOrBubble() && !isOnFire() && onGround()
+                && !level().isRainingAt(blockPosition())
+                && !friend.isInWaterOrBubble() && !friend.isOnFire() && !friend.isSleeping()
+                && !isVehicle() && getCarryAction() == CarryAction.NONE && !hadCarriedPassenger
+                && animalCarryTarget == null && !interactionMovementStopLatched
+                && curiosityPhase == CuriosityPhase.NONE && curiosityStack.isEmpty()
+                && worldInterestPhase == WorldInterestPhase.NONE && fadeMeetingPartner == null
+                && socialRepositionTarget == null
+                && pendingBarrierRecoveryOutcome == FadedMovementCoordinator.RecoveryOutcome.NONE;
+    }
+
+    private void clearPendingEndEcho(int retryCooldown) {
+        pendingEndEcho = null;
+        pendingEndEchoTicks = 0;
+        endEchoRetryCooldown = Math.max(0, retryCooldown);
+    }
+
+    private boolean tickNightWatchCycle() {
+        Player friend = getFriendPlayer();
+        boolean sleeping = friend != null && friend.isSleeping();
+        boolean hardBlocked = isNightWatchHardBlocked(friend);
+        boolean watching = sleeping && !hardBlocked
+                && distanceToSqr(friend) <= 9.0D
+                && hasLineOfSight(friend)
+                && getSocialAction() == SocialAction.WATCH_SLEEPING;
+        boolean canReact = friend instanceof ServerPlayer
+                && !hardBlocked
+                && distanceToSqr(friend) <= 64.0D
+                && hasLineOfSight(friend);
+        FadedNightWatchPolicy.Transition transition = FadedNightWatchPolicy.advance(
+                nightWatchState, new FadedNightWatchPolicy.Snapshot(
+                        sleeping, watching, hardBlocked, canReact));
+        nightWatchState = transition.state();
+        if (transition.decision() != FadedNightWatchPolicy.CompletionDecision.WATCH_COMPLETED
+                || !(friend instanceof ServerPlayer serverFriend)) return false;
+
+        boolean firstDiscovery = journalMemory.discover(JournalMemory.Discovery.BEHAVIOR_NIGHT_WATCH);
+        FadedRelationshipDialoguePolicy.Selection selection = FadedRelationshipDialoguePolicy.select(
+                FadedRelationshipDialoguePolicy.Context.NIGHT_WATCH, true, firstDiscovery,
+                trust, random::nextInt);
+        if (selection == FadedRelationshipDialoguePolicy.Selection.NONE) return false;
+        setSocialAction(SocialAction.AFFECTION);
+        socialActionTicks = 80;
+        socialActionCooldown = Math.max(socialActionCooldown, 200);
+        queueStop(FadedMovementCoordinator.Locomotion.STOP, "night watch wake reaction");
+        queueLookAt(serverFriend, 25.0F, 25.0F, "night watch wake reaction");
+        sayRandom(serverFriend, FadedDialogue.relationshipMemory(selection));
+        return true;
+    }
+
+    private boolean isNightWatchHardBlocked(Player friend) {
+        if (friend == null || !friend.isAlive() || friend.isSpectator() || friend.level() != level()) return true;
+        return distanceToSqr(friend) > 400.0D
+                || isDowned() || entityData.get(HEALING_TICKS) > 0
+                || getCommand() == CompanionCommand.REST || getCommand() == CompanionCommand.HOME
+                || isFriendRescueActive() || getTarget() != null || isAggressive()
+                || selfDefenseTarget != null || hostileReactionTarget != null || dangerSoundTicks > 0
+                || hasCuriosityThreat(friend)
+                || isInWaterOrBubble() || isOnFire() || !onGround()
+                || level().isRainingAt(blockPosition())
+                || friend.isInWaterOrBubble() || friend.isOnFire()
+                || isVehicle() || getCarryAction() != CarryAction.NONE || hadCarriedPassenger
+                || animalCarryTarget != null || interactionMovementStopLatched
+                || curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty()
+                || worldInterestPhase != WorldInterestPhase.NONE || fadeMeetingPartner != null
+                || socialRepositionTarget != null;
+    }
+
     private void tickSocialBehavior() {
         if (socialActionCooldown > 0) socialActionCooldown--;
         if (tickStrangerReaction()) return;
         if (tickFadeMeeting()) return;
         Player friend = getFriendPlayer();
-        if (friend != null) {
-            long absence = level().getGameTime() - lastFriendSeenTime;
-            if (lastFriendSeenTime > 0 && absence > 24000L && tickCount < 80) {
-                sendDialogue(friend, FadedDialogue.normal("dialogue.faded_pearl.returned"));
-                modifyTrust(FadedTrustManager.RETURN_AFTER_ABSENCE);
-            }
+        boolean reunionContact = isReunionContact(friend);
+        FadedReunionPolicy.ContactDecision contactDecision = FadedReunionPolicy.observeContact(
+                lastFriendSeenTime, level().getGameTime(), reunionContact);
+        if (contactDecision != FadedReunionPolicy.ContactDecision.NONE) {
             lastFriendSeenTime = level().getGameTime();
+            if (contactDecision == FadedReunionPolicy.ContactDecision.ARM_REUNION) {
+                reunionPending = true;
+                reunionPendingTicks = 0;
+            }
+        }
+        if (tickReunion(friend, reunionContact)) return;
+        if (friend != null) {
             if (tickCount % 3600 == 0 && distanceToSqr(friend) <= 144.0D) addTrust(FadedTrustManager.PROXIMITY);
         }
+        updateAmbientCalmTicks(friend);
+        if (tickHomeSettle(friend)) return;
         if (animalCarryTarget != null) return;
         boolean directThreatActive = selfDefenseTarget != null && selfDefenseTicks > 0;
         boolean reset = friend == null || distanceToSqr(friend) > 400.0D || isDowned()
@@ -2066,7 +2388,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         }
 
         if (decision.intent() == FadedSocialController.Intent.WATCH_SLEEPING) {
-            setSocialAction(SocialAction.GUARD);
+            setSocialAction(SocialAction.WATCH_SLEEPING);
             socialActionTicks = 60;
             if (distanceToSqr(friend) > 9.0D) queueMoveTo(friend, .72D, "watch sleeping");
             else queueStop(FadedMovementCoordinator.Locomotion.STOP, "watch sleeping nearby");
@@ -2109,6 +2431,16 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         }
 
         if (decision.intent() == FadedSocialController.Intent.CONTINUE_ACTION) {
+            if (ambientRestNearActive && !hasCalmAmbientFriend(friend)) {
+                setSocialAction(SocialAction.NONE);
+                socialActionTicks = 0;
+                return;
+            }
+            if (ambientSharedGazeTarget != null && !hasCalmAmbientFriend(friend)) {
+                setSocialAction(SocialAction.NONE);
+                socialActionTicks = 0;
+                return;
+            }
             socialActionTicks--;
             if (getSocialAction() == SocialAction.GROUND_FLOWER) {
                 ItemEntity flower = BrainUtils.memoryOrDefault(this, SBLMemoryTypes.NEARBY_ITEMS.get(), List::<ItemEntity>of)
@@ -2133,8 +2465,14 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                     || getSocialAction() == SocialAction.HELD_ITEM || getSocialAction() == SocialAction.PLAYER_GESTURE)
                 queueLookAt(friend, 20.0F, 20.0F, "continue social action");
             if (getSocialAction() == SocialAction.LOOK_AROUND) {
-                Vec3 viewed = friend.getEyePosition().add(friend.getLookAngle().scale(8.0D));
+                Vec3 viewed = ambientSharedGazeTarget != null
+                        ? ambientSharedGazeTarget
+                        : friend.getEyePosition().add(friend.getLookAngle().scale(8.0D));
                 queueLookAt(viewed, 25.0F, 25.0F, "continue look around");
+            }
+            if (ambientRestNearActive) {
+                queueStop(FadedMovementCoordinator.Locomotion.STOP, "ambient rest near friend");
+                queueLookAt(friend, 14.0F, 14.0F, "ambient rest near friend");
             }
             if (socialActionTicks == 0) setSocialAction(SocialAction.NONE);
             return;
@@ -2142,6 +2480,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
 
         if (decision.intent() == FadedSocialController.Intent.TRY_WORLD_CURIOSITY
                 && tickWorldCuriosity(friend)) return;
+
+        if (tryStartAmbientRoutine(friend, idleBlocked)) return;
 
         FadedSocialController.IdleDecision idle = FadedSocialController.resolveIdle(
                 idleBlocked, trust, getCommand() == CompanionCommand.FOLLOW, () -> random.nextInt(7));
@@ -2162,6 +2502,55 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             socialActionTicks = 50 + random.nextInt(51);
             socialActionCooldown = 120 + random.nextInt(161);
         }
+    }
+
+    private boolean isReunionContact(Player friend) {
+        return friend instanceof ServerPlayer && friend.isAlive() && !friend.isSpectator()
+                && friend.level() == level()
+                && distanceToSqr(friend) <= FadedReunionPolicy.MAX_CONTACT_DISTANCE_SQR
+                && hasLineOfSight(friend);
+    }
+
+    private boolean tickReunion(Player friend, boolean inContact) {
+        boolean safe = friend instanceof ServerPlayer
+                && !isDowned() && entityData.get(HEALING_TICKS) <= 0
+                && getCommand() != CompanionCommand.REST && getCommand() != CompanionCommand.HOME
+                && getSocialAction() == SocialAction.NONE
+                && !isFriendRescueActive() && getTarget() == null && !isAggressive()
+                && selfDefenseTarget == null && hostileReactionTarget == null && dangerSoundTicks <= 0
+                && !hasCuriosityThreat(friend)
+                && !isInWaterOrBubble() && !isOnFire() && onGround()
+                && !level().isRainingAt(blockPosition())
+                && !friend.isInWaterOrBubble() && !friend.isOnFire() && !friend.isSleeping()
+                && !isVehicle() && getCarryAction() == CarryAction.NONE && !hadCarriedPassenger
+                && animalCarryTarget == null && !interactionMovementStopLatched
+                && curiosityPhase == CuriosityPhase.NONE && curiosityStack.isEmpty()
+                && worldInterestPhase == WorldInterestPhase.NONE && fadeMeetingPartner == null
+                && socialRepositionTarget == null;
+        FadedReunionPolicy.CompletionDecision decision = FadedReunionPolicy.advance(
+                reunionPending, reunionPendingTicks, inContact, safe, trust);
+        if (decision == FadedReunionPolicy.CompletionDecision.NONE) return false;
+        if (decision == FadedReunionPolicy.CompletionDecision.WAITING) {
+            reunionPendingTicks++;
+            return false;
+        }
+        reunionPending = false;
+        reunionPendingTicks = 0;
+        if (decision == FadedReunionPolicy.CompletionDecision.CANCELLED) return false;
+        if (!(friend instanceof ServerPlayer serverFriend)) return false;
+
+        boolean bonded = decision == FadedReunionPolicy.CompletionDecision.COMPLETE_BONDED;
+        setSocialAction(bonded ? SocialAction.AFFECTION : SocialAction.CURIOUS);
+        socialActionTicks = 70;
+        socialActionCooldown = Math.max(socialActionCooldown, 200);
+        queueStop(FadedMovementCoordinator.Locomotion.STOP, "reunion after absence");
+        queueLookAt(serverFriend, 25.0F, 25.0F, "reunion after absence");
+        journalMemory.discover(JournalMemory.Discovery.BEHAVIOR_REUNION);
+        sayRandom(serverFriend, bonded
+                ? FadedDialogue.Category.REUNION_BONDED
+                : FadedDialogue.Category.REUNION_LEARNING);
+        modifyTrust(FadedTrustManager.RETURN_AFTER_ABSENCE);
+        return true;
     }
 
     private boolean tickStrangerReaction() {
@@ -2344,12 +2733,156 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             return;
         }
 
-        if (socialRepositionCooldown > 0 || !calm
-                || random.nextInt(CompanionLivelinessPolicy.SOCIAL_START_ROLL) != 0) return;
+    }
+
+    private boolean tryStartAmbientRoutine(Player friend, boolean idleBlocked) {
+        boolean restNearAvailable = !idleBlocked && friend != null
+                && FadedAmbientRoutinePlanner.canRestNear(ambientCalmTicks, distanceToSqr(friend));
+        Vec3 sharedGazeTarget = idleBlocked || restNearAvailable ? null : findSharedGazeTarget(friend);
+        boolean socialRepositionAvailable = !idleBlocked && socialRepositionCooldown <= 0
+                && canUseSocialReposition(friend)
+                && random.nextInt(CompanionLivelinessPolicy.SOCIAL_START_ROLL) == 0;
+        FadedAmbientRoutinePlanner.Decision routine = planAmbientRoutine(
+                friend, sharedGazeTarget != null, restNearAvailable, socialRepositionAvailable, false);
+        return switch (routine.routine()) {
+            case SHARED_GAZE -> {
+                setSocialAction(SocialAction.LOOK_AROUND);
+                socialActionTicks = 80;
+                socialActionCooldown = 800 + random.nextInt(601);
+                ambientSharedGazeTarget = sharedGazeTarget;
+                ambientCalmTicks = 0;
+                queueLookAt(sharedGazeTarget, 22.0F, 22.0F, "shared gaze");
+                journalMemory.discover(JournalMemory.Discovery.BEHAVIOR_SHARED_GAZE);
+                yield true;
+            }
+            case REST_NEAR -> {
+                setSocialAction(SocialAction.REST_NEAR);
+                ambientRestNearActive = true;
+                ambientCalmTicks = 0;
+                socialActionTicks = 200 + random.nextInt(101);
+                socialActionCooldown = 1600 + random.nextInt(801);
+                queueStop(FadedMovementCoordinator.Locomotion.STOP, "begin ambient rest near friend");
+                queueLookAt(friend, 14.0F, 14.0F, "begin ambient rest near friend");
+                journalMemory.discover(JournalMemory.Discovery.BEHAVIOR_REST_NEAR);
+                yield true;
+            }
+            case SOCIAL_REPOSITION -> startSocialReposition(friend);
+            case HOME_SETTLE -> false;
+            case NONE -> false;
+        };
+    }
+
+    private boolean tickHomeSettle(Player friend) {
+        if (getSocialAction() == SocialAction.HOME_SETTLE) {
+            if (!isHomeSettleSafe()) {
+                socialActionTicks = 0;
+                setSocialAction(SocialAction.NONE);
+                homeSettleCalmTicks = 0;
+                return false;
+            }
+            socialActionTicks = Math.max(0, socialActionTicks - 1);
+            queueStop(FadedMovementCoordinator.Locomotion.AMBIENT_REST, "settle at home");
+            queueLookAt(Vec3.atCenterOf(homePos).add(0.0D, 0.5D, 0.0D),
+                    14.0F, 14.0F, "settle at home");
+            if (socialActionTicks == 0) setSocialAction(SocialAction.NONE);
+            return true;
+        }
+
+        boolean homeSettleAvailable = homePos != null && homeDimension != null
+                && level().dimension().equals(homeDimension)
+                && FadedAmbientRoutinePlanner.canSettleAtHome(
+                        homeSettleCalmTicks, distanceToSqr(Vec3.atCenterOf(homePos)));
+        FadedAmbientRoutinePlanner.Decision routine = planAmbientRoutine(
+                friend, false, false, false, homeSettleAvailable);
+        if (routine.routine() != FadedAmbientRoutinePlanner.Routine.HOME_SETTLE) return false;
+
+        setSocialAction(SocialAction.HOME_SETTLE);
+        socialActionTicks = 200 + random.nextInt(101);
+        socialActionCooldown = 2400 + random.nextInt(2401);
+        homeSettleCalmTicks = 0;
+        queueStop(FadedMovementCoordinator.Locomotion.AMBIENT_REST, "begin settling at home");
+        queueLookAt(Vec3.atCenterOf(homePos).add(0.0D, 0.5D, 0.0D),
+                14.0F, 14.0F, "begin settling at home");
+        return true;
+    }
+
+    private boolean isHomeSettleSafe() {
+        boolean threat = getTarget() != null || isAggressive() || selfDefenseTarget != null
+                || hostileReactionTarget != null || dangerSoundTicks > 0;
+        return isHealed() && getCommand() == CompanionCommand.HOME
+                && homePos != null && homeDimension != null && level().dimension().equals(homeDimension)
+                && distanceToSqr(Vec3.atCenterOf(homePos)) <= FadedAmbientRoutinePlanner.HOME_SETTLE_MAX_DISTANCE_SQR
+                && !isDowned() && entityData.get(HEALING_TICKS) <= 0
+                && !isFriendRescueActive() && !threat
+                && pendingBarrierRecoveryOutcome == FadedMovementCoordinator.RecoveryOutcome.NONE
+                && onGround() && !isInWaterOrBubble() && !isOnFire()
+                && !level().isRainingAt(blockPosition())
+                && !isVehicle() && getCarryAction() == CarryAction.NONE && !hadCarriedPassenger
+                && animalCarryTarget == null && !interactionMovementStopLatched
+                && curiosityPhase == CuriosityPhase.NONE && curiosityStack.isEmpty()
+                && worldInterestPhase == WorldInterestPhase.NONE
+                && fadeMeetingPartner == null && socialRepositionTarget == null
+                && carriedFlower.isEmpty();
+    }
+
+    private boolean reservesHomeWanderForSettle() {
+        return socialActionCooldown <= 0 && socialActionTicks <= 0
+                && getSocialAction() == SocialAction.NONE && isHomeSettleSafe();
+    }
+
+    private void updateAmbientCalmTicks(Player friend) {
+        boolean selfIdle = getDeltaMovement().horizontalDistanceSqr() < .0025D
+                && getNavigation().isDone() && pendingLocomotion.isEmpty()
+                && getSocialAction() == SocialAction.NONE && socialActionTicks <= 0
+                && curiosityPhase == CuriosityPhase.NONE && curiosityStack.isEmpty()
+                && worldInterestPhase == WorldInterestPhase.NONE
+                && socialRepositionTarget == null && animalCarryTarget == null
+                && !isVehicle() && getCarryAction() == CarryAction.NONE;
+        if (selfIdle && hasCalmAmbientFriend(friend))
+            ambientCalmTicks = Math.min(FadedAmbientRoutinePlanner.REST_NEAR_CALM_TICKS, ambientCalmTicks + 1);
+        else ambientCalmTicks = 0;
+        if (selfIdle && hasCalmHomeContext())
+            homeSettleCalmTicks = Math.min(
+                    FadedAmbientRoutinePlanner.HOME_SETTLE_CALM_TICKS, homeSettleCalmTicks + 1);
+        else homeSettleCalmTicks = 0;
+    }
+
+    private boolean hasCalmHomeContext() {
+        boolean threat = getTarget() != null || isAggressive() || selfDefenseTarget != null
+                || hostileReactionTarget != null || dangerSoundTicks > 0;
+        return isHealed() && getCommand() == CompanionCommand.HOME
+                && homePos != null && homeDimension != null && level().dimension().equals(homeDimension)
+                && distanceToSqr(Vec3.atCenterOf(homePos)) <= FadedAmbientRoutinePlanner.HOME_SETTLE_MAX_DISTANCE_SQR
+                && !isDowned() && entityData.get(HEALING_TICKS) <= 0
+                && !isFriendRescueActive() && !threat
+                && pendingBarrierRecoveryOutcome == FadedMovementCoordinator.RecoveryOutcome.NONE
+                && onGround() && !isInWaterOrBubble() && !isOnFire()
+                && !level().isRainingAt(blockPosition())
+                && !interactionMovementStopLatched && animalCarryTarget == null
+                && carriedFlower.isEmpty();
+    }
+
+    private boolean hasCalmAmbientFriend(Player friend) {
+        boolean friendStationary = friend != null && friend.isAlive() && !friend.isSpectator()
+                && friend.level() == level() && distanceToSqr(friend) <= 64.0D
+                && friend.onGround() && !friend.isSprinting() && !friend.isFallFlying()
+                && !friend.getAbilities().flying
+                && friend.getDeltaMovement().horizontalDistanceSqr() < .0025D;
+        boolean threat = getTarget() != null || isAggressive() || selfDefenseTarget != null
+                || hostileReactionTarget != null || dangerSoundTicks > 0;
+        return friendStationary && getCommand() == CompanionCommand.FOLLOW
+                && !isDowned() && entityData.get(HEALING_TICKS) <= 0
+                && !isFriendRescueActive() && !threat && !interactionMovementStopLatched
+                && !isInWaterOrBubble() && !isOnFire() && onGround()
+                && !friend.isInWaterOrBubble() && !friend.isOnFire()
+                && !level().isRainingAt(blockPosition());
+    }
+
+    private boolean startSocialReposition(Player friend) {
         DryRoute route = findSocialRepositionRoute(friend);
         if (route == null) {
             socialRepositionCooldown = 600;
-            return;
+            return false;
         }
         socialRepositionTarget = route.destination();
         socialRepositionPath = route.path();
@@ -2357,8 +2890,97 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         socialRepositionFriendOrigin = friend.position();
         socialRepositionWatchFriend = random.nextBoolean();
         socialRepositionTicks = CompanionLivelinessPolicy.SOCIAL_MOVE_TIMEOUT;
+        ambientCalmTicks = 0;
         socialRepositionCooldown = CompanionLivelinessPolicy.socialCooldown(
                 random.nextInt(CompanionLivelinessPolicy.SOCIAL_COOLDOWN_VARIANCE));
+        return true;
+    }
+
+    private Vec3 findSharedGazeTarget(Player friend) {
+        if (friend == null || trust < FadedAmbientRoutinePlanner.SHARED_GAZE_MIN_TRUST) return null;
+        Vec3 friendEye = friend.getEyePosition();
+        Vec3 towardFade = getEyePosition().subtract(friendEye);
+        if (towardFade.lengthSqr() > 0.0001D
+                && friend.getLookAngle().dot(towardFade.normalize()) > 0.965D) return null;
+
+        BlockHitResult playerHit = level().clip(new ClipContext(friendEye,
+                friendEye.add(friend.getLookAngle().scale(12.0D)),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, friend));
+        if (playerHit.getType() != HitResult.Type.BLOCK) return null;
+        Vec3 target = playerHit.getLocation();
+        if (target.distanceToSqr(friendEye) < 4.0D || target.distanceToSqr(getEyePosition()) > 256.0D)
+            return null;
+
+        BlockHitResult fadeHit = level().clip(new ClipContext(getEyePosition(), target,
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        return fadeHit.getType() == HitResult.Type.MISS
+                || fadeHit.getBlockPos().equals(playerHit.getBlockPos()) ? target : null;
+    }
+
+    private FadedAmbientRoutinePlanner.Decision planAmbientRoutine(
+            Player friend,
+            boolean sharedGazeAvailable,
+            boolean restNearAvailable,
+            boolean socialRepositionAvailable,
+            boolean homeSettleAvailable
+    ) {
+        boolean friendNearby = friend != null && friend.isAlive() && !friend.isSpectator()
+                && friend.level() == level() && distanceToSqr(friend) <= 64.0D;
+        boolean friendStationary = friendNearby && friend.onGround() && !friend.isSprinting()
+                && !friend.isFallFlying() && !friend.getAbilities().flying
+                && friend.getDeltaMovement().horizontalDistanceSqr() < .0025D;
+        boolean combat = getTarget() != null || isAggressive() || selfDefenseTarget != null;
+        boolean threat = hostileReactionTarget != null || dangerSoundTicks > 0;
+        boolean carryingPlayer = getPassengers().stream().anyMatch(Player.class::isInstance)
+                || getCarryAction() != CarryAction.NONE || hadCarriedPassenger;
+        boolean carryingAnimal = getFirstPassenger() instanceof Animal || animalCarryTarget != null;
+        boolean unsafe = isInWaterOrBubble() || isOnFire() || !onGround()
+                || level().isRainingAt(blockPosition())
+                || friendNearby && (friend.isInWaterOrBubble() || friend.isOnFire());
+        boolean hasHome = homePos != null && homeDimension != null;
+        boolean sameHomeDimension = hasHome && level().dimension().equals(homeDimension);
+        boolean nearHome = sameHomeDimension
+                && distanceToSqr(Vec3.atCenterOf(homePos)) <= FadedAmbientRoutinePlanner.HOME_SETTLE_MAX_DISTANCE_SQR;
+
+        return FadedAmbientRoutinePlanner.plan(new FadedAmbientRoutinePlanner.Snapshot(
+                trust,
+                toRoutineCommand(getCommand()),
+                isHealed(),
+                friendNearby,
+                friendStationary,
+                socialActionCooldown <= 0,
+                isDowned(),
+                entityData.get(HEALING_TICKS) > 0,
+                isFriendRescueActive(),
+                pendingBarrierRecoveryOutcome != FadedMovementCoordinator.RecoveryOutcome.NONE,
+                combat,
+                threat,
+                unsafe,
+                carryingPlayer,
+                carryingAnimal,
+                interactionMovementStopLatched,
+                curiosityPhase != CuriosityPhase.NONE || worldInterestPhase != WorldInterestPhase.NONE,
+                !curiosityStack.isEmpty(),
+                getSocialAction() != SocialAction.NONE || socialActionTicks > 0 || !carriedFlower.isEmpty(),
+                fadeMeetingPartner != null,
+                socialRepositionTarget != null,
+                sharedGazeAvailable,
+                restNearAvailable,
+                socialRepositionAvailable,
+                hasHome,
+                sameHomeDimension,
+                nearHome,
+                homeSettleAvailable),
+                () -> random.nextInt(2));
+    }
+
+    private static FadedAmbientRoutinePlanner.Command toRoutineCommand(CompanionCommand command) {
+        return switch (command) {
+            case FOLLOW -> FadedAmbientRoutinePlanner.Command.FOLLOW;
+            case STAY -> FadedAmbientRoutinePlanner.Command.STAY;
+            case REST -> FadedAmbientRoutinePlanner.Command.REST;
+            case HOME -> FadedAmbientRoutinePlanner.Command.HOME;
+        };
     }
 
     private boolean canUseSocialReposition(Player friend) {
@@ -2374,7 +2996,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                 isVehicle() || getCarryAction() != CarryAction.NONE || hadCarriedPassenger,
                 isFriendRescueActive(), threat,
                 isInWaterOrBubble() || isOnFire() || friend != null && (friend.isInWaterOrBubble() || friend.isOnFire()),
-                curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty(),
+                curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty()
+                        || worldInterestPhase != WorldInterestPhase.NONE,
                 interactionMovementStopLatched,
                 getSocialAction() != SocialAction.NONE || socialActionTicks > 0 || !carriedFlower.isEmpty()));
     }
@@ -2682,7 +3305,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         boolean friendNearby = friend != null && friend.isAlive() && !friend.isSpectator()
                 && distanceToSqr(friend) <= 64.0D;
         boolean socialActionActive = getSocialAction() != SocialAction.NONE || socialActionTicks > 0;
-        boolean curiosityActive = curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty();
+        boolean curiosityActive = curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty()
+                || worldInterestPhase != WorldInterestPhase.NONE;
         boolean carrying = isVehicle() || getCarryAction() != CarryAction.NONE || hadCarriedPassenger;
         boolean combatActive = getTarget() != null || isAggressive() || getActiveHostileReactionTarget() != null;
         boolean unsafeEnvironment = isInWaterOrBubble() || isOnFire() || !onGround();
@@ -3178,7 +3802,11 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     public SocialAction getSocialAction() {
         return SocialAction.values()[Math.min(entityData.get(SOCIAL_ACTION), SocialAction.values().length - 1)];
     }
-    private void setSocialAction(SocialAction action) { entityData.set(SOCIAL_ACTION, action.ordinal()); }
+    private void setSocialAction(SocialAction action) {
+        entityData.set(SOCIAL_ACTION, action.ordinal());
+        if (action != SocialAction.LOOK_AROUND) ambientSharedGazeTarget = null;
+        if (action != SocialAction.REST_NEAR) ambientRestNearActive = false;
+    }
     public CarryAction getCarryAction() {
         return CarryAction.values()[Math.min(entityData.get(CARRY_ACTION), CarryAction.values().length - 1)];
     }
@@ -3350,6 +3978,287 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         if (!groundCandidates.isEmpty()) {
             startCuriosityCooldown();
         }
+    }
+
+    private void tickWorldInterest() {
+        if (worldInterestCooldown > 0) worldInterestCooldown--;
+        Player friend = getFriendPlayer();
+        boolean ownerInteracted = worldInterestOwnerInteraction;
+        worldInterestOwnerInteraction = false;
+        if (worldInterestPhase != WorldInterestPhase.NONE) {
+            if (shouldInterruptWorldInterest(friend, ownerInteracted)) {
+                cancelWorldInterest(FadedWorldInterestPolicy.SHORT_FAILURE_COOLDOWN_TICKS,
+                        "world interest interrupted");
+                return;
+            }
+            tickActiveWorldInterest();
+            return;
+        }
+        if (!CompanionPerformancePolicy.isCadenceTick(tickCount, getId(),
+                FadedWorldInterestPolicy.SCAN_CADENCE_TICKS)
+                || FadedWorldInterestPolicy.decide(worldInterestSnapshot(friend, true, ownerInteracted))
+                != FadedWorldInterestPolicy.Decision.INSPECT) return;
+
+        WorldInterestRoute route = findWorldInterestRoute();
+        FadedWorldInterestPolicy.Decision decision = FadedWorldInterestPolicy.decide(
+                worldInterestSnapshot(friend, route != null, ownerInteracted));
+        if (decision != FadedWorldInterestPolicy.Decision.INSPECT || route == null) return;
+        worldInterestCategory = route.category();
+        worldInterestTarget = route.target();
+        worldInterestDestination = route.destination();
+        worldInterestPath = route.path();
+        worldInterestPathStarted = false;
+        worldInterestTicks = FadedWorldInterestPolicy.APPROACH_TIMEOUT_TICKS;
+        worldInterestPhase = WorldInterestPhase.APPROACH;
+        ambientCalmTicks = 0;
+    }
+
+    private FadedWorldInterestPolicy.Snapshot worldInterestSnapshot(
+            Player friend, boolean candidateAvailable, boolean ownerInteracted) {
+        boolean ownerNearby = friend != null && friend.isAlive() && !friend.isSpectator()
+                && friend.level() == level() && distanceToSqr(friend) <= 144.0D;
+        boolean combat = getTarget() != null || isAggressive() || selfDefenseTarget != null;
+        boolean threat = hostileReactionTarget != null || dangerSoundTicks > 0
+                || ownerNearby && hasCuriosityThreat(friend);
+        boolean harmfulRain = level().isRainingAt(blockPosition());
+        boolean unsafe = !onGround() || ownerNearby && (friend.isInWaterOrBubble() || friend.isOnFire());
+        boolean carryingPlayer = getPassengers().stream().anyMatch(Player.class::isInstance)
+                || getCarryAction() != CarryAction.NONE || hadCarriedPassenger;
+        boolean carryingAnimal = getFirstPassenger() instanceof Animal || animalCarryTarget != null;
+        boolean otherRoutine = socialRepositionTarget != null || ambientSharedGazeTarget != null
+                || ambientRestNearActive;
+        boolean higherMovement = !pendingLocomotion.isEmpty()
+                || pendingBarrierRecoveryOutcome != FadedMovementCoordinator.RecoveryOutcome.NONE;
+        return new FadedWorldInterestPolicy.Snapshot(
+                trust,
+                getCommand() == CompanionCommand.FOLLOW,
+                isHealed(),
+                getDeltaMovement().horizontalDistanceSqr() < .0025D && getNavigation().isDone(),
+                onGround() && !isInWaterOrBubble() && !isOnFire(),
+                ownerNearby,
+                worldInterestCooldown <= 0,
+                isDowned(),
+                entityData.get(HEALING_TICKS) > 0,
+                isFriendRescueActive(),
+                pendingBarrierRecoveryOutcome != FadedMovementCoordinator.RecoveryOutcome.NONE,
+                combat,
+                threat,
+                isInWaterOrBubble(),
+                isOnFire(),
+                harmfulRain,
+                unsafe,
+                carryingPlayer,
+                carryingAnimal,
+                interactionMovementStopLatched || ownerInteracted,
+                curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty(),
+                fadeMeetingPartner != null,
+                otherRoutine,
+                getSocialAction() != SocialAction.NONE || socialActionTicks > 0 || !carriedFlower.isEmpty(),
+                higherMovement,
+                candidateAvailable);
+    }
+
+    private boolean shouldInterruptWorldInterest(Player friend, boolean ownerInteracted) {
+        boolean ownInspectAction = worldInterestPhase == WorldInterestPhase.INSPECT
+                && getSocialAction() == SocialAction.ITEM_INSPECT;
+        boolean foreignSocialAction = (getSocialAction() != SocialAction.NONE || socialActionTicks > 0)
+                && !ownInspectAction;
+        return friend == null || !friend.isAlive() || friend.isSpectator() || friend.level() != level()
+                || distanceToSqr(friend) > 144.0D || getCommand() != CompanionCommand.FOLLOW
+                || isDowned() || entityData.get(HEALING_TICKS) > 0 || isFriendRescueActive()
+                || pendingBarrierRecoveryOutcome != FadedMovementCoordinator.RecoveryOutcome.NONE
+                || getTarget() != null || isAggressive() || selfDefenseTarget != null
+                || hostileReactionTarget != null || dangerSoundTicks > 0 || hasCuriosityThreat(friend)
+                || isInWaterOrBubble() || isOnFire() || !onGround()
+                || level().isRainingAt(blockPosition()) || friend.isInWaterOrBubble() || friend.isOnFire()
+                || isVehicle() || getCarryAction() != CarryAction.NONE || hadCarriedPassenger
+                || animalCarryTarget != null || interactionMovementStopLatched || ownerInteracted
+                || curiosityPhase != CuriosityPhase.NONE || !curiosityStack.isEmpty()
+                || fadeMeetingPartner != null || socialRepositionTarget != null || foreignSocialAction;
+    }
+
+    private void tickActiveWorldInterest() {
+        if (!(level() instanceof ServerLevel serverLevel) || worldInterestTarget == null
+                || !serverLevel.hasChunkAt(worldInterestTarget)
+                || worldInterestCategory == null
+                || classifyWorldInterest(worldInterestTarget) != worldInterestCategory
+                || worldInterestDestination == null
+                || !isWorldInterestTargetVisibleFrom(worldInterestDestination, worldInterestTarget)
+                || worldInterestPhase == WorldInterestPhase.INSPECT
+                && !isWorldInterestTargetVisibleFrom(blockPosition(), worldInterestTarget)) {
+            cancelWorldInterest(FadedWorldInterestPolicy.SHORT_FAILURE_COOLDOWN_TICKS,
+                    "world interest target lost");
+            return;
+        }
+        Vec3 targetCenter = Vec3.atCenterOf(worldInterestTarget);
+        if (worldInterestPhase == WorldInterestPhase.APPROACH) {
+            if (worldInterestDestination == null || --worldInterestTicks <= 0
+                    || !isSafeHomeLanding(serverLevel, worldInterestDestination)) {
+                cancelWorldInterest(FadedWorldInterestPolicy.SHORT_FAILURE_COOLDOWN_TICKS,
+                        "world interest route expired");
+                return;
+            }
+            if (position().distanceToSqr(Vec3.atBottomCenterOf(worldInterestDestination)) <= 1.0D) {
+                queueLocomotion(FadedMovementCoordinator.Locomotion.CURIOSITY_APPROACH,
+                        worldInterestTarget.toShortString(), 0.0D, "world knowledge reached",
+                        this::applyNavigationStop);
+                queueLookAt(targetCenter, 25.0F, 25.0F, "inspect world knowledge");
+                worldInterestPhase = WorldInterestPhase.INSPECT;
+                worldInterestTicks = FadedWorldInterestPolicy.INSPECT_DURATION_TICKS;
+                setSocialAction(SocialAction.ITEM_INSPECT);
+                socialActionTicks = worldInterestTicks;
+                boolean knowledgeInterest = worldInterestCategory == FadedWorldInterestCatalog.Category.KNOWLEDGE;
+                boolean firstDiscovery = journalMemory.discover(knowledgeInterest
+                        ? JournalMemory.Discovery.BEHAVIOR_WORLD_KNOWLEDGE
+                        : JournalMemory.Discovery.BEHAVIOR_WORLD_CRAFT);
+                Player friendPlayer = getFriendPlayer();
+                ServerPlayer serverFriend = friendPlayer instanceof ServerPlayer player ? player : null;
+                FadedRelationshipDialoguePolicy.Selection relationshipDialogue =
+                        FadedRelationshipDialoguePolicy.select(
+                                knowledgeInterest
+                                        ? FadedRelationshipDialoguePolicy.Context.KNOWLEDGE
+                                        : FadedRelationshipDialoguePolicy.Context.CRAFTSMANSHIP,
+                                serverFriend != null,
+                                firstDiscovery,
+                                trust,
+                                random::nextInt);
+                if (serverFriend != null && relationshipDialogue != FadedRelationshipDialoguePolicy.Selection.NONE)
+                    sayRandom(serverFriend, FadedDialogue.relationshipMemory(relationshipDialogue));
+                return;
+            }
+            if (worldInterestPathStarted && getNavigation().isDone()) {
+                cancelWorldInterest(FadedWorldInterestPolicy.SHORT_FAILURE_COOLDOWN_TICKS,
+                        "world interest path ended");
+                return;
+            }
+            Path route = worldInterestPath;
+            queueLocomotion(FadedMovementCoordinator.Locomotion.CURIOSITY_APPROACH,
+                    worldInterestDestination.toShortString(), .68D, "approach world knowledge", () -> {
+                        if (worldInterestPathStarted) return;
+                        worldInterestPathStarted = true;
+                        worldInterestPath = null;
+                        if (route == null || !applyMoveTo(route, .68D)) {
+                            applyNavigationStop();
+                            cancelWorldInterest(FadedWorldInterestPolicy.SHORT_FAILURE_COOLDOWN_TICKS,
+                                    "world interest path rejected");
+                        }
+                    });
+            queueLookAt(targetCenter, 20.0F, 20.0F, "approach world knowledge");
+            return;
+        }
+
+        queueLocomotion(FadedMovementCoordinator.Locomotion.CURIOSITY_APPROACH,
+                worldInterestTarget.toShortString(), 0.0D, "inspect world knowledge",
+                this::applyNavigationStop);
+        queueLookAt(targetCenter, 25.0F, 25.0F, "inspect world knowledge");
+        setSocialAction(SocialAction.ITEM_INSPECT);
+        socialActionTicks = Math.max(0, worldInterestTicks);
+        if (--worldInterestTicks <= 0) {
+            int bound = FadedWorldInterestPolicy.COOLDOWN_MAX_TICKS
+                    - FadedWorldInterestPolicy.COOLDOWN_MIN_TICKS + 1;
+            int cooldown = FadedWorldInterestPolicy.rollCompletionCooldown(
+                    FadedWorldInterestPolicy.Decision.INSPECT, () -> random.nextInt(bound));
+            cancelWorldInterest(cooldown, "world interest complete");
+        }
+    }
+
+    private WorldInterestRoute findWorldInterestRoute() {
+        if (!(level() instanceof ServerLevel serverLevel)) return null;
+        List<WorldInterestCandidate> targets = new ArrayList<>();
+        BlockPos origin = blockPosition();
+        for (BlockPos candidate : BlockPos.betweenClosed(origin.offset(-8, -4, -8), origin.offset(8, 4, 8))) {
+            BlockPos target = candidate.immutable();
+            FadedWorldInterestCatalog.Category category = classifyWorldInterest(target);
+            if (target.equals(lastWorldInterestTarget) || !serverLevel.hasChunkAt(target)
+                    || category == null || !FadedWorldInterestCatalog.isUnlocked(category, trust)
+                    || !isWorldInterestTargetVisibleFrom(origin, target)) continue;
+            targets.add(new WorldInterestCandidate(category, target));
+        }
+        targets.sort(java.util.Comparator.comparingDouble(candidate -> candidate.target().distSqr(origin)));
+        FadedWorldInterestCatalog.Category lastCategory = lastWorldInterestTarget == null
+                ? null : classifyWorldInterest(lastWorldInterestTarget);
+        boolean fallbackAvailable = lastCategory != null
+                && FadedWorldInterestCatalog.isUnlocked(lastCategory, trust)
+                && serverLevel.hasChunkAt(lastWorldInterestTarget)
+                && isWorldInterestTargetVisibleFrom(origin, lastWorldInterestTarget);
+        int primaryBudget = FadedWorldInterestCatalog.primaryRouteBudget(fallbackAvailable);
+        int routeAttempts = 0;
+        for (WorldInterestCandidate candidate : targets) {
+            if (routeAttempts >= primaryBudget) break;
+            routeAttempts++;
+            DryRoute route = findWorldInterestRouteTo(candidate.target());
+            if (route != null) return new WorldInterestRoute(candidate.category(), candidate.target(),
+                    route.destination(), route.path());
+        }
+        if (fallbackAvailable && routeAttempts < FadedWorldInterestCatalog.MAX_ROUTE_CANDIDATES) {
+            DryRoute route = findWorldInterestRouteTo(lastWorldInterestTarget);
+            if (route != null) return new WorldInterestRoute(lastCategory, lastWorldInterestTarget,
+                    route.destination(), route.path());
+        }
+        return null;
+    }
+
+    private DryRoute findWorldInterestRouteTo(BlockPos target) {
+        if (!(level() instanceof ServerLevel serverLevel)) return null;
+        Direction[] sides = {Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
+        for (Direction side : sides) {
+            for (int dy = 2; dy >= -3; dy--) {
+                BlockPos feet = target.relative(side).offset(0, dy, 0);
+                if (!serverLevel.hasChunkAt(feet) || !isSafeHomeLanding(serverLevel, feet)
+                        || !isWorldInterestTargetVisibleFrom(feet, target)) continue;
+                Path path = createDryPathTo(feet);
+                if (path != null) return new DryRoute(feet.immutable(), path);
+            }
+        }
+        return null;
+    }
+
+    private boolean isKnowledgeInterestBlock(BlockPos target) {
+        var state = level().getBlockState(target);
+        return state.is(Blocks.BOOKSHELF) || state.is(Blocks.CHISELED_BOOKSHELF)
+                || state.is(Blocks.LECTERN) || state.is(Blocks.ENCHANTING_TABLE);
+    }
+
+    private boolean isCraftsmanshipInterestBlock(BlockPos target) {
+        var state = level().getBlockState(target);
+        return state.is(Blocks.CRAFTING_TABLE) || state.is(Blocks.FURNACE)
+                || state.is(Blocks.BLAST_FURNACE) || state.is(Blocks.SMOKER)
+                || state.is(Blocks.ANVIL) || state.is(Blocks.CHIPPED_ANVIL)
+                || state.is(Blocks.DAMAGED_ANVIL) || state.is(Blocks.SMITHING_TABLE)
+                || state.is(Blocks.STONECUTTER) || state.is(Blocks.GRINDSTONE)
+                || state.is(Blocks.LOOM) || state.is(Blocks.CARTOGRAPHY_TABLE)
+                || state.is(Blocks.FLETCHING_TABLE) || state.is(Blocks.BREWING_STAND);
+    }
+
+    private FadedWorldInterestCatalog.Category classifyWorldInterest(BlockPos target) {
+        if (isKnowledgeInterestBlock(target)) return FadedWorldInterestCatalog.Category.KNOWLEDGE;
+        if (isCraftsmanshipInterestBlock(target)) return FadedWorldInterestCatalog.Category.CRAFTSMANSHIP;
+        return null;
+    }
+
+    private boolean isWorldInterestTargetVisibleFrom(BlockPos feet, BlockPos target) {
+        Vec3 start = Vec3.atBottomCenterOf(feet).add(0.0D, getEyeHeight(), 0.0D);
+        BlockHitResult hit = level().clip(new ClipContext(start, Vec3.atCenterOf(target),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        return hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(target);
+    }
+
+    private void cancelWorldInterest(int cooldown, String reason) {
+        if (worldInterestPhase != WorldInterestPhase.NONE)
+            queueStop(FadedMovementCoordinator.Locomotion.STOP, reason);
+        if (worldInterestTarget != null) lastWorldInterestTarget = worldInterestTarget.immutable();
+        if (getSocialAction() == SocialAction.ITEM_INSPECT) {
+            setSocialAction(SocialAction.NONE);
+            socialActionTicks = 0;
+        }
+        worldInterestPhase = WorldInterestPhase.NONE;
+        worldInterestCategory = null;
+        worldInterestTarget = null;
+        worldInterestDestination = null;
+        worldInterestPath = null;
+        worldInterestPathStarted = false;
+        worldInterestTicks = 0;
+        worldInterestCooldown = Math.max(worldInterestCooldown, cooldown);
     }
 
     private void tickGroundCuriosity() {
@@ -3676,7 +4585,12 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         nameLearningMemory.read(tag);
         journalMemory.read(tag);
         nameLearningMemory.ensureRepeatCooldown(random::nextInt);
+        nameLearningMemory.ensurePetRepeatCooldown(random::nextInt);
         awarenessBaselineInitialized = false;
+        friendWasInVillage = false;
+        villageEntryPending = false;
+        lastVisibleDiamondOre = null;
+        clearPendingEndEcho(0);
         curiosityStack = tag.contains(FadedPersistenceCodec.CURIOSITY_STACK)
                 ? ItemStack.of(tag.getCompound(FadedPersistenceCodec.CURIOSITY_STACK)) : ItemStack.EMPTY;
         entityData.set(CURIOSITY_DISPLAY, curiosityStack.copy());
@@ -3847,6 +4761,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         @Override
         public boolean canUse() {
             if (interactionMovementStopLatched || socialRepositionTarget != null
+                    || worldInterestPhase != WorldInterestPhase.NONE
                     || !isHealed() || isDowned() || isVehicle()
                     || getCommand() != CompanionCommand.FOLLOW || friendId == null) return false;
             friend = getFriendPlayer();
@@ -3858,6 +4773,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         public boolean canContinueToUse() {
             return friend != null && friend.isAlive() && !friend.isSpectator()
                     && !interactionMovementStopLatched && socialRepositionTarget == null
+                    && worldInterestPhase == WorldInterestPhase.NONE
                     && getCommand() == CompanionCommand.FOLLOW && !isDowned() && !isVehicle()
                     && !shouldPauseFollowForWater(friend) && distanceToSqr(friend) > 36.0D;
         }
@@ -4105,6 +5021,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         @Override
         public boolean canUse() {
             if (interactionMovementStopLatched || !isHealed() || isDowned() || getCommand() != CompanionCommand.HOME
+                    || getSocialAction() == SocialAction.HOME_SETTLE
+                    || reservesHomeWanderForSettle()
                     || homePos == null || homeDimension == null || !level().dimension().equals(homeDimension)
                     || distanceToSqr(Vec3.atCenterOf(homePos)) > 1225.0D || random.nextInt(80) != 0) return false;
             for (int attempt = 0; attempt < 12; attempt++) {
@@ -4132,6 +5050,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         public boolean canContinueToUse() {
             return !interactionMovementStopLatched && destination != null && !getNavigation().isDone()
                     && getCommand() == CompanionCommand.HOME
+                    && getSocialAction() != SocialAction.HOME_SETTLE
                     && homePos != null && position().distanceToSqr(Vec3.atCenterOf(homePos)) <= 1156.0D;
         }
 

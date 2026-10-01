@@ -31,8 +31,8 @@ final class FadedDialogueCallSiteTest {
             categories.add(matcher.group(1));
         }
 
-        assertEquals(45, calls);
-        assertEquals(45, categories.size());
+        assertEquals(46, calls);
+        assertEquals(46, categories.size());
         assertFalse(source.contains("FadedDialogue.variantKey("));
         assertFalse(source.contains("FadedDialogue.sendRandom"));
     }

@@ -78,11 +78,23 @@ final class EndermanJournalContractTest {
         Set<String> polishKeys = polish.keySet().stream().filter(EndermanJournalContractTest::journalKey)
                 .collect(java.util.stream.Collectors.toSet());
         assertEquals(englishKeys, polishKeys);
-        assertEquals(91, englishKeys.size());
+        assertEquals(119, englishKeys.size());
+        for (EndermanJournalSnapshot.DayEntry entry : EndermanJournalSnapshot.DayEntry.values()) {
+            String base = "journal.faded_pearl.day."
+                    + entry.name().toLowerCase(java.util.Locale.ROOT);
+            assertTrue(englishKeys.contains(base + ".title"));
+            assertTrue(englishKeys.contains(base + ".text"));
+        }
         for (EndermanJournalSnapshot.BehaviorEntry entry : EndermanJournalSnapshot.BehaviorEntry.values())
             assertTrue(englishKeys.contains("journal.faded_pearl.behavior."
                     + entry.name().toLowerCase(java.util.Locale.ROOT) + ".use"));
         assertTrue(englishKeys.contains("journal.faded_pearl.behavior.social_reposition.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.shared_gaze.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.rest_near.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.world_knowledge.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.world_craft.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.night_watch.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.reunion.text"));
         assertTrue(englishKeys.contains("journal.faded_pearl.behavior.animal_carry.text"));
         assertTrue(englishKeys.contains("journal.faded_pearl.basic.trust_value"));
         assertTrue(englishKeys.contains("journal.faded_pearl.basic.origin.fade_story"));
@@ -110,6 +122,27 @@ final class EndermanJournalContractTest {
         int discovery = carry.indexOf("journalMemory.discover(JournalMemory.Discovery.BEHAVIOR_ANIMAL_CARRY)");
         int mountFailure = carry.indexOf("else cancelAnimalCarryAttempt()", mountSuccess);
         assertTrue(mountSuccess >= 0 && discovery > mountSuccess && discovery < mountFailure);
+    }
+
+    @Test
+    void sharedGazeDiscoveryRequiresAConfirmedRoutineTargetAndDoesNotChangeTrust() throws Exception {
+        String entity = Files.readString(MAIN.resolve("entity/FadedEnderman.java"));
+        String routine = entity.substring(entity.indexOf("private boolean tryStartAmbientRoutine"),
+                entity.indexOf("private FadedAmbientRoutinePlanner.Decision planAmbientRoutine"));
+        int sharedCase = routine.indexOf("case SHARED_GAZE");
+        int targetAssignment = routine.indexOf("ambientSharedGazeTarget = sharedGazeTarget", sharedCase);
+        int discovery = routine.indexOf("JournalMemory.Discovery.BEHAVIOR_SHARED_GAZE", sharedCase);
+        int restCase = routine.indexOf("case REST_NEAR");
+        int restDiscovery = routine.indexOf("JournalMemory.Discovery.BEHAVIOR_REST_NEAR", restCase);
+        assertAll(
+                () -> assertTrue(routine.contains("findSharedGazeTarget(friend)")),
+                () -> assertTrue(routine.contains("FadedAmbientRoutinePlanner.canRestNear")),
+                () -> assertTrue(routine.contains("playerHit.getType() != HitResult.Type.BLOCK")),
+                () -> assertTrue(routine.contains("fadeHit.getBlockPos().equals(playerHit.getBlockPos())")),
+                () -> assertTrue(sharedCase >= 0 && targetAssignment > sharedCase && discovery > targetAssignment),
+                () -> assertTrue(restCase >= 0 && restDiscovery > restCase),
+                () -> assertFalse(routine.contains("modifyTrust(")),
+                () -> assertFalse(routine.contains("addTrust(")));
     }
 
     @Test

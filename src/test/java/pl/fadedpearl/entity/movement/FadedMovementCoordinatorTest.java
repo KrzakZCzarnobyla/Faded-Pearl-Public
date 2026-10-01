@@ -33,6 +33,7 @@ class FadedMovementCoordinatorTest {
         assertEquals(Locomotion.RESCUE_FALL.priority(), Locomotion.RESCUE_FIRE.priority());
         assertEquals(Locomotion.GUARD_INTERPOSE.priority(), Locomotion.COMBAT_CHASE.priority());
         assertEquals(Locomotion.EXTERNAL_INTERACTION_STOP.priority(), Locomotion.CURIOSITY_APPROACH.priority());
+        assertEquals(Locomotion.SOCIAL_MOVE.priority(), Locomotion.AMBIENT_REST.priority());
     }
 
     @Test
@@ -226,6 +227,22 @@ class FadedMovementCoordinatorTest {
                 new Candidates(List.of(candidate(Locomotion.FOLLOW_PATH), candidate(Locomotion.STOP)),
                         List.of(), List.of()));
         assertEquals(Locomotion.FOLLOW_PATH, fromHomeToFollow.locomotion().type());
+    }
+
+    @Test
+    void ambientRestStopsHomeWanderButYieldsToReturningHomeAndUrgentMovement() {
+        LocomotionCandidate ambientRest = candidate(Locomotion.AMBIENT_REST);
+        Snapshot home = snapshot(Command.HOME);
+
+        assertEquals(Locomotion.AMBIENT_REST, coordinator.resolve(home, State.initial(),
+                new Candidates(List.of(candidate(Locomotion.HOME_WANDER), ambientRest),
+                        List.of(), List.of())).locomotion().type());
+        assertEquals(Locomotion.HOME_RETURN, coordinator.resolve(home, State.initial(),
+                new Candidates(List.of(candidate(Locomotion.HOME_RETURN), ambientRest),
+                        List.of(), List.of())).locomotion().type());
+        assertEquals(Locomotion.ESCAPE_FIRE, coordinator.resolve(home, State.initial(),
+                new Candidates(List.of(candidate(Locomotion.ESCAPE_FIRE), ambientRest),
+                        List.of(), List.of())).locomotion().type());
     }
 
     @Test

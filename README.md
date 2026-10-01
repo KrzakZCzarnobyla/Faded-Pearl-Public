@@ -17,21 +17,23 @@ longer relationship built through trust, exploration and the way you treat him.
 - Follow, Stay, Rest and Home companion commands;
 - protection, rescue, carrying and safe joint teleportation;
 - reactions to items, animals, weather, villages, discoveries and other Fade companions;
+- calm routines, world interests and persistent relationship memories;
+- End-related story memories discovered through shared exploration;
 - a discoverable Enderman Journal containing memories, controls and recipes;
-- the Resonating Anchor, companion recovery and the permanent Escape Pearl upgrade;
-- separate companion relationships for different players;
-- English and Polish localization.
+- the redesigned Resonating Anchor, companion recovery and the permanent Escape Pearl upgrade;
+- separate companion relationships for different players.
 
 ## Current release
 
-The current public build is **1.8.0-beta.3**.
+The current public build is **1.9.0-beta.1**.
 
-Singleplayer was tested on a fresh world and a migrated disposable world. Multiplayer is
-available as an experimental beta feature, but the current build has not received a complete
-dedicated-server regression for restarts, disconnects, recovery and dimension travel. Back up
-the world and use the exact same Faded Pearl JAR on the server and every client.
+Automated regression, resource validation, development-client startup and copied-world migration
+checks have passed. Several long-running and observational cases remain open for community testing.
+Multiplayer is available as an experimental beta feature, but complete dedicated-server regression
+is deferred to version 2.5. Back up the world and use the exact same Faded Pearl JAR on the server
+and every client.
 
-[Download Faded Pearl 1.8.0-beta.3](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases/tag/v1.8.0-beta.3)
+[Download Faded Pearl 1.9.0-beta.1](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases/tag/v1.9.0-beta.1)
 
 ## Requirements
 
@@ -41,7 +43,8 @@ the world and use the exact same Faded Pearl JAR on the server and every client.
 - GeckoLib 4.8.4
 - SmartBrainLib 1.15
 
-See the [installation and update guide](docs/INSTALLATION.md),
+See the [release notes](docs/RELEASE_NOTES_1.9.0-beta.1.md),
+[installation and update guide](docs/INSTALLATION.md),
 [world configuration reference](docs/CONFIGURATION.md) and
 [known beta limitations](docs/KNOWN_LIMITATIONS.md) before using the mod in an important world.
 

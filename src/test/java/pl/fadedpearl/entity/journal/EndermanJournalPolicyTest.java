@@ -19,7 +19,10 @@ final class EndermanJournalPolicyTest {
                 Set.of(WorldAwarenessMemory.Milestone.VILLAGE, WorldAwarenessMemory.Milestone.PLAYER_DIAMOND,
                         WorldAwarenessMemory.Milestone.ENDERMAN_DIAMOND, WorldAwarenessMemory.Milestone.ENDER_PEARL,
                         WorldAwarenessMemory.Milestone.ARMOR_UPGRADE, WorldAwarenessMemory.Milestone.TAMED_ANY,
-                        WorldAwarenessMemory.Milestone.BUILD_COMPLETED),
+                        WorldAwarenessMemory.Milestone.BUILD_COMPLETED,
+                        WorldAwarenessMemory.Milestone.END_PORTAL, WorldAwarenessMemory.Milestone.END_ARRIVAL,
+                        WorldAwarenessMemory.Milestone.DRAGON_DEFEATED, WorldAwarenessMemory.Milestone.DRAGON_EGG,
+                        WorldAwarenessMemory.Milestone.END_RETURN),
                 true, Optional.of("Lumen"), true, true, 0x12ABCDEF, 60));
 
         assertEquals(Set.of(DayEntry.values()), snapshot.days());
@@ -31,6 +34,25 @@ final class EndermanJournalPolicyTest {
         assertEquals(0xABCDEF, snapshot.healingColor());
         assertEquals(60, snapshot.trust());
         assertFalse(snapshot.fadeOriginKnown());
+    }
+
+    @Test
+    void endDaysRevealIndependentlyButTechnicalFightEvidenceStaysHidden() {
+        EndermanJournalSnapshot technicalOnly = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(WorldAwarenessMemory.Milestone.END_DRAGON_LIVE_WITNESSED), false,
+                Optional.empty(), false, false, 0, 0));
+        assertTrue(technicalOnly.days().isEmpty());
+
+        for (WorldAwarenessMemory.Milestone milestone : Set.of(
+                WorldAwarenessMemory.Milestone.END_PORTAL,
+                WorldAwarenessMemory.Milestone.END_ARRIVAL,
+                WorldAwarenessMemory.Milestone.DRAGON_DEFEATED,
+                WorldAwarenessMemory.Milestone.DRAGON_EGG,
+                WorldAwarenessMemory.Milestone.END_RETURN)) {
+            EndermanJournalSnapshot snapshot = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                    Set.of(), Set.of(milestone), false, Optional.empty(), false, false, 0, 0));
+            assertEquals(1, snapshot.days().size(), milestone.name());
+        }
     }
 
     @Test
@@ -79,6 +101,69 @@ final class EndermanJournalPolicyTest {
                 Set.of(JournalMemory.Discovery.BEHAVIOR_ANIMAL_CARRY), Set.of(), false,
                 Optional.empty(), false, false, 0, 75));
         assertEquals(Set.of(BehaviorEntry.ANIMAL_CARRY), snapshot.behaviors());
+    }
+
+    @Test
+    void sharedGazeRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 12));
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_SHARED_GAZE), Set.of(), false,
+                Optional.empty(), false, false, 0, 12));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.SHARED_GAZE));
+        assertEquals(Set.of(BehaviorEntry.SHARED_GAZE), discovered.behaviors());
+    }
+
+    @Test
+    void ambientRestRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_REST_NEAR), Set.of(), false,
+                Optional.empty(), false, false, 0, 35));
+        assertEquals(Set.of(BehaviorEntry.REST_NEAR), discovered.behaviors());
+    }
+
+    @Test
+    void worldKnowledgeRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 25));
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_WORLD_KNOWLEDGE), Set.of(), false,
+                Optional.empty(), false, false, 0, 25));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.WORLD_KNOWLEDGE));
+        assertEquals(Set.of(BehaviorEntry.WORLD_KNOWLEDGE), discovered.behaviors());
+    }
+
+    @Test
+    void worldCraftRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 35));
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_WORLD_CRAFT), Set.of(), false,
+                Optional.empty(), false, false, 0, 35));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.WORLD_CRAFT));
+        assertEquals(Set.of(BehaviorEntry.WORLD_CRAFT), discovered.behaviors());
+    }
+
+    @Test
+    void nightWatchRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 0));
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_NIGHT_WATCH), Set.of(), false,
+                Optional.empty(), false, false, 0, 0));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.NIGHT_WATCH));
+        assertEquals(Set.of(BehaviorEntry.NIGHT_WATCH), discovered.behaviors());
+    }
+
+    @Test
+    void reunionRequiresItsOwnPersistentDiscovery() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 0));
+        EndermanJournalSnapshot discovered = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.BEHAVIOR_REUNION), Set.of(), false,
+                Optional.empty(), false, false, 0, 0));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.REUNION));
+        assertEquals(Set.of(BehaviorEntry.REUNION), discovered.behaviors());
     }
 
     @Test

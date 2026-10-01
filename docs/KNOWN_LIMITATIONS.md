@@ -1,8 +1,28 @@
-# Known limitations of Faded Pearl 1.8.0-beta.3
+# Known limitations of Faded Pearl
 
 This document separates confirmed problems from areas that have not yet been fully tested.
 
-## Experimental multiplayer
+## 1.9.0-beta.1 community beta
+
+The 1.9 beta has passed automated regression, resource validation, a clean development-client
+startup and controlled triggers for shared gaze, resting near the player and settling at home.
+Natural frequency, full interruption coverage, world interest, relationship memories, End story
+memories and the Resonating Anchor presentation still include unverified observational cases.
+These are open beta test areas, not confirmed defects.
+
+A copied `1.8.x` world preserved the companion UUID and data through Save/Quit and an
+Overworld–Nether–Overworld round trip without a persistent duplicate. A controlled loss and
+recovery of the canonical companion remains open because the migrated test world's ownership
+ledger could not be safely reconstructed through manual NBT editing. Do not use the beta on the
+only copy of an important world.
+
+Full multiplayer development and dedicated-server regression are deferred to version 2.5. The
+existing multiplayer code remains experimental; use the same JAR on all clients and the server,
+and back up the world.
+
+## 1.8.0-beta.3 public beta
+
+### Experimental multiplayer
 
 The basic loop for separate player relationships was confirmed in an earlier three-player
 session, but `1.8.0-beta.3` has not received a complete dedicated-server regression covering
@@ -10,20 +30,20 @@ restarts, one player disconnecting, simultaneous recovery and dimension travel b
 owners. This is untested scope, not a confirmed defect. Back up the world before playing and
 use the exact same JAR on the server and every client.
 
-## Compatibility with other mods
+### Compatibility with other mods
 
 Faded Pearl does not require JEI, Jade or WTHIT to start. An earlier JEI test confirmed recipe
 visibility in a previous candidate, but a complete runtime matrix for exact versions of recipe
 viewers, overlays, transport mods and entity-serialization mods remains open for beta.3. A mod
 not appearing here is neither a confirmed incompatibility nor confirmed support.
 
-## Performance
+### Performance
 
 Automated tests and ordinary singleplayer sessions did not reveal a failure, but comparative
 profiling with `0/1/10/25` active Fades has not yet been accepted. Large servers should treat
 this build as a beta and monitor TPS/MSPT, especially with many active relationships.
 
-## Migration
+### Migration
 
 A disposable world from version `1.4.1` preserved one companion, the relationship, Save/Quit,
 the Escape Pearl, dimension travel and recovery. However, a complete baseline for every optional

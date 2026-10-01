@@ -66,18 +66,18 @@ Current public builds, downloads and release notes are available on
 
 ## Verifying the download
 
-Compare the file name, size and SHA-256 with the values published for the release. The prepared
-`faded_pearl-1.8.0-beta.3.jar` candidate is `1469680` bytes and has this SHA-256:
-`8D10D32A53D121CD7101AB3125902B6053B1BF189AE0901AAC47170BC01D9A56`.
+Compare the file name, size and SHA-256 with the values published for the release.
+`faded_pearl-1.9.0-beta.1.jar` is `1546946` bytes and has this SHA-256:
+`932DA8A8A83D0E5100B7402757A8A1D3BBF90C90F44FA7D8E5B12161238C1253`.
 
 Windows PowerShell:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\faded_pearl-1.8.0-beta.3.jar
+Get-FileHash -Algorithm SHA256 -LiteralPath .\faded_pearl-1.9.0-beta.1.jar
 ```
 
 Linux/macOS:
 
 ```bash
-sha256sum faded_pearl-1.8.0-beta.3.jar
+sha256sum faded_pearl-1.9.0-beta.1.jar
 ```

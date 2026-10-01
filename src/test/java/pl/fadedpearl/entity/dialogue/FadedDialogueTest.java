@@ -156,4 +156,83 @@ final class FadedDialogueTest {
     void rejectsUnknownWorldReaction() {
         assertThrows(IllegalArgumentException.class, () -> FadedDialogue.worldReaction("unknown"));
     }
+
+    @Test
+    void mapsEveryRelationshipSelectionToItsDedicatedDialogueFamily() {
+        assertEquals(FadedDialogue.Category.RELATION_KNOWLEDGE_FIRST,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.KNOWLEDGE_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_KNOWLEDGE_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.KNOWLEDGE_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_KNOWLEDGE_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.KNOWLEDGE_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.RELATION_CRAFT_FIRST,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.CRAFT_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_CRAFT_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.CRAFT_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_CRAFT_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.CRAFT_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_VILLAGE,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.VILLAGE_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_VILLAGE_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.VILLAGE_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_VILLAGE_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.VILLAGE_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_PLAYER_DIAMOND,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.PLAYER_DIAMOND_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_PLAYER_DIAMOND_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.PLAYER_DIAMOND_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_PLAYER_DIAMOND_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.PLAYER_DIAMOND_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_ENDERMAN_DIAMOND,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ENDERMAN_DIAMOND_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_ENDERMAN_DIAMOND_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ENDERMAN_DIAMOND_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_ENDERMAN_DIAMOND_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ENDERMAN_DIAMOND_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_TAMED_WOLF,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_WOLF_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_WOLF_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_WOLF_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_WOLF_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_WOLF_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_TAMED_CAT,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_CAT_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_CAT_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_CAT_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_CAT_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_CAT_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_TAMED_PARROT,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_PARROT_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_PARROT_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_PARROT_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_PARROT_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_PARROT_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_TAMED_OTHER,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_OTHER_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_OTHER_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_OTHER_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_TAMED_OTHER_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.TAMED_OTHER_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_BUILD,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.BUILD_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_BUILD_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.BUILD_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_BUILD_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.BUILD_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.AWARE_ARMOR_UPGRADE,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ARMOR_UPGRADE_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_ARMOR_UPGRADE_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ARMOR_UPGRADE_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_ARMOR_UPGRADE_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.ARMOR_UPGRADE_REPEAT_BONDED));
+        assertEquals(FadedDialogue.Category.RELATION_NIGHT_WATCH_FIRST,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.NIGHT_WATCH_FIRST));
+        assertEquals(FadedDialogue.Category.RELATION_NIGHT_WATCH_REPEAT_LEARNING,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.NIGHT_WATCH_REPEAT_LEARNING));
+        assertEquals(FadedDialogue.Category.RELATION_NIGHT_WATCH_REPEAT_BONDED,
+                FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.NIGHT_WATCH_REPEAT_BONDED));
+        assertThrows(IllegalArgumentException.class,
+                () -> FadedDialogue.relationshipMemory(FadedRelationshipDialoguePolicy.Selection.NONE));
+        assertThrows(IllegalArgumentException.class, () -> FadedDialogue.relationshipMemory(null));
+    }
 }

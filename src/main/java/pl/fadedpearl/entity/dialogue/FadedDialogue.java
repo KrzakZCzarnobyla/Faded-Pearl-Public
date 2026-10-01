@@ -65,6 +65,12 @@ public final class FadedDialogue {
         WORLD_WATER("world.water", "dialogue.faded_pearl.world.water.", 5, 0, Delivery.NORMAL),
         WORLD_ORE("world.ore", "dialogue.faded_pearl.world.ore.", 5, 0, Delivery.NORMAL),
         WORLD_CRAFTING("world.crafting", "dialogue.faded_pearl.world.crafting.", 5, 0, Delivery.NORMAL),
+        RELATION_KNOWLEDGE_FIRST("relationship.knowledge.first", "dialogue.faded_pearl.relationship.knowledge.first.", 3, 0, Delivery.NORMAL),
+        RELATION_KNOWLEDGE_REPEAT_LEARNING("relationship.knowledge.repeat_learning", "dialogue.faded_pearl.relationship.knowledge.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_KNOWLEDGE_REPEAT_BONDED("relationship.knowledge.repeat_bonded", "dialogue.faded_pearl.relationship.knowledge.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_CRAFT_FIRST("relationship.craft.first", "dialogue.faded_pearl.relationship.craft.first.", 3, 0, Delivery.NORMAL),
+        RELATION_CRAFT_REPEAT_LEARNING("relationship.craft.repeat_learning", "dialogue.faded_pearl.relationship.craft.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_CRAFT_REPEAT_BONDED("relationship.craft.repeat_bonded", "dialogue.faded_pearl.relationship.craft.repeat_bonded.", 4, 0, Delivery.NORMAL),
         WORLD_CAVE("world.cave", "dialogue.faded_pearl.world.cave.", 5, 0, Delivery.NORMAL),
         WORLD_STARS("world.stars", "dialogue.faded_pearl.world.stars.", 5, 0, Delivery.NORMAL),
         WORLD_RAIN("world.rain", "dialogue.faded_pearl.world.rain.", 5, 0, Delivery.NORMAL),
@@ -79,17 +85,48 @@ public final class FadedDialogue {
         AWARE_VILLAGE("awareness.village", "dialogue.faded_pearl.awareness.village.", 3, 0, Delivery.NORMAL),
         AWARE_PLAYER_DIAMOND("awareness.player_diamond", "dialogue.faded_pearl.awareness.player_diamond.", 3, 0, Delivery.NORMAL),
         AWARE_ENDERMAN_DIAMOND("awareness.enderman_diamond", "dialogue.faded_pearl.awareness.enderman_diamond.", 3, 0, Delivery.NORMAL),
+        RELATION_VILLAGE_REPEAT_LEARNING("relationship.village.repeat_learning", "dialogue.faded_pearl.relationship.village.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_VILLAGE_REPEAT_BONDED("relationship.village.repeat_bonded", "dialogue.faded_pearl.relationship.village.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_PLAYER_DIAMOND_REPEAT_LEARNING("relationship.player_diamond.repeat_learning", "dialogue.faded_pearl.relationship.player_diamond.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_PLAYER_DIAMOND_REPEAT_BONDED("relationship.player_diamond.repeat_bonded", "dialogue.faded_pearl.relationship.player_diamond.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_ENDERMAN_DIAMOND_REPEAT_LEARNING("relationship.enderman_diamond.repeat_learning", "dialogue.faded_pearl.relationship.enderman_diamond.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_ENDERMAN_DIAMOND_REPEAT_BONDED("relationship.enderman_diamond.repeat_bonded", "dialogue.faded_pearl.relationship.enderman_diamond.repeat_bonded.", 4, 0, Delivery.NORMAL),
         AWARE_ENDER_PEARL("awareness.ender_pearl", "dialogue.faded_pearl.awareness.ender_pearl.", 3, 0, Delivery.NORMAL),
         AWARE_ARMOR_UPGRADE("awareness.armor_upgrade", "dialogue.faded_pearl.awareness.armor_upgrade.", 3, 0, Delivery.NORMAL),
+        RELATION_ARMOR_UPGRADE_REPEAT_LEARNING("relationship.armor_upgrade.repeat_learning", "dialogue.faded_pearl.relationship.armor_upgrade.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_ARMOR_UPGRADE_REPEAT_BONDED("relationship.armor_upgrade.repeat_bonded", "dialogue.faded_pearl.relationship.armor_upgrade.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_NIGHT_WATCH_FIRST("relationship.night_watch.first", "dialogue.faded_pearl.relationship.night_watch.first.", 3, 0, Delivery.NORMAL),
+        RELATION_NIGHT_WATCH_REPEAT_LEARNING("relationship.night_watch.repeat_learning", "dialogue.faded_pearl.relationship.night_watch.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_NIGHT_WATCH_REPEAT_BONDED("relationship.night_watch.repeat_bonded", "dialogue.faded_pearl.relationship.night_watch.repeat_bonded.", 4, 0, Delivery.NORMAL),
         AWARE_TAMED_WOLF("awareness.tamed_wolf", "dialogue.faded_pearl.awareness.tamed_wolf.", 3, 0, Delivery.NORMAL),
         AWARE_TAMED_CAT("awareness.tamed_cat", "dialogue.faded_pearl.awareness.tamed_cat.", 3, 0, Delivery.NORMAL),
         AWARE_TAMED_PARROT("awareness.tamed_parrot", "dialogue.faded_pearl.awareness.tamed_parrot.", 3, 0, Delivery.NORMAL),
         AWARE_TAMED_OTHER("awareness.tamed_other", "dialogue.faded_pearl.awareness.tamed_other.", 3, 0, Delivery.NORMAL),
+        RELATION_TAMED_WOLF_REPEAT_LEARNING("relationship.tamed_wolf.repeat_learning", "dialogue.faded_pearl.relationship.tamed_wolf.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_WOLF_REPEAT_BONDED("relationship.tamed_wolf.repeat_bonded", "dialogue.faded_pearl.relationship.tamed_wolf.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_CAT_REPEAT_LEARNING("relationship.tamed_cat.repeat_learning", "dialogue.faded_pearl.relationship.tamed_cat.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_CAT_REPEAT_BONDED("relationship.tamed_cat.repeat_bonded", "dialogue.faded_pearl.relationship.tamed_cat.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_PARROT_REPEAT_LEARNING("relationship.tamed_parrot.repeat_learning", "dialogue.faded_pearl.relationship.tamed_parrot.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_PARROT_REPEAT_BONDED("relationship.tamed_parrot.repeat_bonded", "dialogue.faded_pearl.relationship.tamed_parrot.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_OTHER_REPEAT_LEARNING("relationship.tamed_other.repeat_learning", "dialogue.faded_pearl.relationship.tamed_other.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_TAMED_OTHER_REPEAT_BONDED("relationship.tamed_other.repeat_bonded", "dialogue.faded_pearl.relationship.tamed_other.repeat_bonded.", 4, 0, Delivery.NORMAL),
         AWARE_PET_ANIMAL("awareness.pet_animal", "dialogue.faded_pearl.awareness.pet_animal.", 3, 0, Delivery.NORMAL),
         AWARE_BUILD("awareness.build", "dialogue.faded_pearl.awareness.build.", 3, 0, Delivery.NORMAL),
+        RELATION_BUILD_REPEAT_LEARNING("relationship.build.repeat_learning", "dialogue.faded_pearl.relationship.build.repeat_learning.", 4, 0, Delivery.NORMAL),
+        RELATION_BUILD_REPEAT_BONDED("relationship.build.repeat_bonded", "dialogue.faded_pearl.relationship.build.repeat_bonded.", 4, 0, Delivery.NORMAL),
+        REUNION_LEARNING("reunion.learning", "dialogue.faded_pearl.reunion.learning.", 4, 0, Delivery.NORMAL),
+        REUNION_BONDED("reunion.bonded", "dialogue.faded_pearl.reunion.bonded.", 4, 0, Delivery.NORMAL),
+        END_PORTAL("end.portal", "dialogue.faded_pearl.end.portal.", 3, 0, Delivery.NORMAL),
+        END_ARRIVAL_LIVE("end.arrival_live", "dialogue.faded_pearl.end.arrival_live.", 3, 0, Delivery.NORMAL),
+        END_ARRIVAL_DEFEATED("end.arrival_defeated", "dialogue.faded_pearl.end.arrival_defeated.", 3, 0, Delivery.NORMAL),
+        END_DRAGON_DEFEATED("end.dragon_defeated", "dialogue.faded_pearl.end.dragon_defeated.", 3, 0, Delivery.NORMAL),
+        END_DRAGON_EGG("end.dragon_egg", "dialogue.faded_pearl.end.dragon_egg.", 3, 0, Delivery.NORMAL),
+        END_RETURN("end.return", "dialogue.faded_pearl.end.return.", 3, 0, Delivery.NORMAL),
         NAME_LEARNED("name.learned", "dialogue.faded_pearl.name.learned.", 3, 0, Delivery.NORMAL),
         NAME_REPEAT("name.repeat", "dialogue.faded_pearl.name.repeat.", 3, 0, Delivery.NORMAL),
         NAMED_PET("name.pet", "dialogue.faded_pearl.name.pet.", 3, 0, Delivery.NORMAL),
+        NAMED_PET_REPEAT_LEARNING("name.pet_repeat_learning", "dialogue.faded_pearl.name.pet_repeat_learning.", 4, 0, Delivery.NORMAL),
+        NAMED_PET_REPEAT_BONDED("name.pet_repeat_bonded", "dialogue.faded_pearl.name.pet_repeat_bonded.", 4, 0, Delivery.NORMAL),
         RESCUE_FALL("rescue.fall", "faded_pearl.dialogue.rescue.fall.", 3, 0, Delivery.NORMAL),
         RESCUE_LAVA("rescue.lava", "faded_pearl.dialogue.rescue.lava.", 3, 0, Delivery.NORMAL),
         RESCUE_HEALTH("rescue.health", "faded_pearl.dialogue.rescue.health.", 3, 0, Delivery.NORMAL);
@@ -127,6 +164,50 @@ public final class FadedDialogue {
         public Delivery delivery() {
             return delivery;
         }
+    }
+
+    public static Category relationshipMemory(FadedRelationshipDialoguePolicy.Selection selection) {
+        if (selection == null || selection == FadedRelationshipDialoguePolicy.Selection.NONE)
+            throw new IllegalArgumentException("Relationship dialogue selection must contain a dialogue");
+        return switch (selection) {
+            case KNOWLEDGE_FIRST -> Category.RELATION_KNOWLEDGE_FIRST;
+            case KNOWLEDGE_REPEAT_LEARNING -> Category.RELATION_KNOWLEDGE_REPEAT_LEARNING;
+            case KNOWLEDGE_REPEAT_BONDED -> Category.RELATION_KNOWLEDGE_REPEAT_BONDED;
+            case CRAFT_FIRST -> Category.RELATION_CRAFT_FIRST;
+            case CRAFT_REPEAT_LEARNING -> Category.RELATION_CRAFT_REPEAT_LEARNING;
+            case CRAFT_REPEAT_BONDED -> Category.RELATION_CRAFT_REPEAT_BONDED;
+            case VILLAGE_FIRST -> Category.AWARE_VILLAGE;
+            case VILLAGE_REPEAT_LEARNING -> Category.RELATION_VILLAGE_REPEAT_LEARNING;
+            case VILLAGE_REPEAT_BONDED -> Category.RELATION_VILLAGE_REPEAT_BONDED;
+            case PLAYER_DIAMOND_FIRST -> Category.AWARE_PLAYER_DIAMOND;
+            case PLAYER_DIAMOND_REPEAT_LEARNING -> Category.RELATION_PLAYER_DIAMOND_REPEAT_LEARNING;
+            case PLAYER_DIAMOND_REPEAT_BONDED -> Category.RELATION_PLAYER_DIAMOND_REPEAT_BONDED;
+            case ENDERMAN_DIAMOND_FIRST -> Category.AWARE_ENDERMAN_DIAMOND;
+            case ENDERMAN_DIAMOND_REPEAT_LEARNING -> Category.RELATION_ENDERMAN_DIAMOND_REPEAT_LEARNING;
+            case ENDERMAN_DIAMOND_REPEAT_BONDED -> Category.RELATION_ENDERMAN_DIAMOND_REPEAT_BONDED;
+            case TAMED_WOLF_FIRST -> Category.AWARE_TAMED_WOLF;
+            case TAMED_WOLF_REPEAT_LEARNING -> Category.RELATION_TAMED_WOLF_REPEAT_LEARNING;
+            case TAMED_WOLF_REPEAT_BONDED -> Category.RELATION_TAMED_WOLF_REPEAT_BONDED;
+            case TAMED_CAT_FIRST -> Category.AWARE_TAMED_CAT;
+            case TAMED_CAT_REPEAT_LEARNING -> Category.RELATION_TAMED_CAT_REPEAT_LEARNING;
+            case TAMED_CAT_REPEAT_BONDED -> Category.RELATION_TAMED_CAT_REPEAT_BONDED;
+            case TAMED_PARROT_FIRST -> Category.AWARE_TAMED_PARROT;
+            case TAMED_PARROT_REPEAT_LEARNING -> Category.RELATION_TAMED_PARROT_REPEAT_LEARNING;
+            case TAMED_PARROT_REPEAT_BONDED -> Category.RELATION_TAMED_PARROT_REPEAT_BONDED;
+            case TAMED_OTHER_FIRST -> Category.AWARE_TAMED_OTHER;
+            case TAMED_OTHER_REPEAT_LEARNING -> Category.RELATION_TAMED_OTHER_REPEAT_LEARNING;
+            case TAMED_OTHER_REPEAT_BONDED -> Category.RELATION_TAMED_OTHER_REPEAT_BONDED;
+            case BUILD_FIRST -> Category.AWARE_BUILD;
+            case BUILD_REPEAT_LEARNING -> Category.RELATION_BUILD_REPEAT_LEARNING;
+            case BUILD_REPEAT_BONDED -> Category.RELATION_BUILD_REPEAT_BONDED;
+            case ARMOR_UPGRADE_FIRST -> Category.AWARE_ARMOR_UPGRADE;
+            case ARMOR_UPGRADE_REPEAT_LEARNING -> Category.RELATION_ARMOR_UPGRADE_REPEAT_LEARNING;
+            case ARMOR_UPGRADE_REPEAT_BONDED -> Category.RELATION_ARMOR_UPGRADE_REPEAT_BONDED;
+            case NIGHT_WATCH_FIRST -> Category.RELATION_NIGHT_WATCH_FIRST;
+            case NIGHT_WATCH_REPEAT_LEARNING -> Category.RELATION_NIGHT_WATCH_REPEAT_LEARNING;
+            case NIGHT_WATCH_REPEAT_BONDED -> Category.RELATION_NIGHT_WATCH_REPEAT_BONDED;
+            case NONE -> throw new IllegalArgumentException("Relationship dialogue selection must contain a dialogue");
+        };
     }
 
     public static final class Memory {

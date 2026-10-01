@@ -6,6 +6,7 @@ import net.minecraft.nbt.StringTag;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -68,11 +69,105 @@ final class NameLearningMemoryTest {
     }
 
     @Test
+    void petRepeatCooldownUsesInclusiveBoundsAndTicksToReady() {
+        NameLearningMemory memory = new NameLearningMemory();
+        UUID pet = UUID.randomUUID();
+        AtomicInteger calls = new AtomicInteger();
+        AtomicInteger boundSeen = new AtomicInteger();
+
+        memory.rememberPet(pet, "Mochi", bound -> {
+            calls.incrementAndGet();
+            boundSeen.set(bound);
+            return 0;
+        });
+        assertEquals(1, calls.get());
+        assertEquals(NameLearningMemory.MAX_PET_REPEAT_COOLDOWN
+                - NameLearningMemory.MIN_PET_REPEAT_COOLDOWN + 1, boundSeen.get());
+        assertEquals(NameLearningMemory.MIN_PET_REPEAT_COOLDOWN, memory.petRepeatCooldown());
+        assertFalse(memory.canRepeatPetName(pet, "Mochi"));
+
+        for (int tick = 0; tick < NameLearningMemory.MIN_PET_REPEAT_COOLDOWN; tick++)
+            memory.tickPetRepeatCooldown();
+        assertEquals(0, memory.petRepeatCooldown());
+        assertTrue(memory.canRepeatPetName(pet, "Mochi"));
+        memory.tickPetRepeatCooldown();
+        assertEquals(0, memory.petRepeatCooldown());
+
+        memory.resetPetRepeatCooldown(bound -> bound - 1);
+        assertEquals(NameLearningMemory.MAX_PET_REPEAT_COOLDOWN, memory.petRepeatCooldown());
+    }
+
+    @Test
+    void petRepeatRequiresIdenticalUuidAndSanitizedRememberedName() {
+        NameLearningMemory memory = new NameLearningMemory();
+        UUID pet = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        String oversized = "x".repeat(70);
+        String sanitized = "x".repeat(NameLearningMemory.MAX_NAME_LENGTH);
+        memory.rememberPet(pet, oversized);
+
+        assertTrue(memory.canRepeatPetName(pet, oversized));
+        assertTrue(memory.canRepeatPetName(pet, sanitized));
+        assertFalse(memory.canRepeatPetName(other, sanitized));
+        assertFalse(memory.canRepeatPetName(pet, "Renamed"));
+        assertFalse(memory.canRepeatPetName(pet, ""));
+        assertFalse(memory.canRepeatPetName(null, sanitized));
+    }
+
+    @Test
+    void ensurePetRepeatCooldownOnlyReadsRngWhenPetsNeedDelay() {
+        NameLearningMemory memory = new NameLearningMemory();
+        AtomicInteger calls = new AtomicInteger();
+
+        memory.ensurePetRepeatCooldown(bound -> {
+            calls.incrementAndGet();
+            return 0;
+        });
+        assertEquals(0, calls.get());
+        assertEquals(0, memory.petRepeatCooldown());
+
+        UUID pet = UUID.randomUUID();
+        memory.rememberPet(pet, "Mochi");
+        memory.ensurePetRepeatCooldown(bound -> {
+            calls.incrementAndGet();
+            return 0;
+        });
+        assertEquals(1, calls.get());
+        assertEquals(NameLearningMemory.MIN_PET_REPEAT_COOLDOWN, memory.petRepeatCooldown());
+
+        memory.ensurePetRepeatCooldown(bound -> {
+            calls.incrementAndGet();
+            return 0;
+        });
+        assertEquals(1, calls.get());
+    }
+
+    @Test
+    void rejectedPetLearningDoesNotReadRngOrCreateCooldown() {
+        NameLearningMemory memory = new NameLearningMemory();
+        AtomicInteger calls = new AtomicInteger();
+
+        memory.rememberPet(null, "Mochi", bound -> {
+            calls.incrementAndGet();
+            return 0;
+        });
+        memory.rememberPet(UUID.randomUUID(), "", bound -> {
+            calls.incrementAndGet();
+            return 0;
+        });
+
+        assertEquals(0, calls.get());
+        assertEquals(0, memory.petRepeatCooldown());
+        assertTrue(memory.petSnapshot().isEmpty());
+    }
+
+    @Test
     void saveRoundTripIsBoundedAndOldOrDamagedNbtFallsBackToEmpty() {
         NameLearningMemory source = new NameLearningMemory();
         source.rememberOwnName("Pearl", bound -> 17);
         UUID pet = UUID.randomUUID();
         source.rememberPet(pet, "Mochi");
+        source.resetPetRepeatCooldown(bound -> 29);
         CompoundTag saved = new CompoundTag();
         source.write(saved);
 
@@ -81,16 +176,19 @@ final class NameLearningMemoryTest {
         assertEquals(source.ownName(), loaded.ownName());
         assertEquals(source.repeatCooldown(), loaded.repeatCooldown());
         assertEquals(source.petSnapshot(), loaded.petSnapshot());
+        assertEquals(source.petRepeatCooldown(), loaded.petRepeatCooldown());
 
         loaded.read(new CompoundTag());
         assertTrue(loaded.ownName().isEmpty());
         assertTrue(loaded.petSnapshot().isEmpty());
+        assertEquals(0, loaded.petRepeatCooldown());
 
         CompoundTag damaged = new CompoundTag();
         damaged.put(NameLearningMemory.NBT_KEY, StringTag.valueOf("broken"));
         loaded.read(damaged);
         assertTrue(loaded.ownName().isEmpty());
         assertTrue(loaded.petSnapshot().isEmpty());
+        assertEquals(0, loaded.petRepeatCooldown());
     }
 
     @Test
@@ -99,6 +197,7 @@ final class NameLearningMemoryTest {
         CompoundTag memoryTag = new CompoundTag();
         memoryTag.putString("OwnName", oversized);
         memoryTag.putInt("RepeatCooldown", -20);
+        memoryTag.putInt("PetRepeatCooldown", Integer.MAX_VALUE);
         ListTag pets = new ListTag();
         for (int index = 0; index < 40; index++) {
             CompoundTag entry = new CompoundTag();
@@ -116,6 +215,56 @@ final class NameLearningMemoryTest {
         assertEquals(0, loaded.repeatCooldown());
         assertEquals(NameLearningMemory.MAX_PETS, loaded.petSnapshot().size());
         assertTrue(loaded.petSnapshot().values().stream().allMatch(name -> name.length() == 64));
+        assertEquals(NameLearningMemory.MAX_PET_REPEAT_COOLDOWN, loaded.petRepeatCooldown());
+    }
+
+    @Test
+    void negativePetRepeatCooldownIsClampedToZero() {
+        UUID pet = UUID.randomUUID();
+        CompoundTag memoryTag = petMemoryTag(pet, "Mochi");
+        memoryTag.putInt("PetRepeatCooldown", -1);
+        CompoundTag parent = new CompoundTag();
+        parent.put(NameLearningMemory.NBT_KEY, memoryTag);
+
+        NameLearningMemory loaded = new NameLearningMemory();
+        loaded.read(parent);
+
+        assertEquals(0, loaded.petRepeatCooldown());
+        assertTrue(loaded.canRepeatPetName(pet, "Mochi"));
+    }
+
+    @Test
+    void oldPetSaveWithoutCooldownLoadsReadyAndEnsureAssignsSafeDelay() {
+        UUID pet = UUID.randomUUID();
+        CompoundTag parent = new CompoundTag();
+        parent.put(NameLearningMemory.NBT_KEY, petMemoryTag(pet, "Mochi"));
+
+        NameLearningMemory loaded = new NameLearningMemory();
+        loaded.read(parent);
+        assertEquals(0, loaded.petRepeatCooldown());
+        assertTrue(loaded.canRepeatPetName(pet, "Mochi"));
+
+        AtomicInteger calls = new AtomicInteger();
+        loaded.ensurePetRepeatCooldown(bound -> {
+            calls.incrementAndGet();
+            return bound - 1;
+        });
+        assertEquals(1, calls.get());
+        assertEquals(NameLearningMemory.MAX_PET_REPEAT_COOLDOWN, loaded.petRepeatCooldown());
+        assertFalse(loaded.canRepeatPetName(pet, "Mochi"));
+    }
+
+    @Test
+    void petCooldownIsNotWrittenWithoutPets() {
+        NameLearningMemory memory = new NameLearningMemory();
+        memory.rememberOwnName("Pearl", bound -> 0);
+        memory.resetPetRepeatCooldown(bound -> 0);
+        CompoundTag parent = new CompoundTag();
+
+        memory.write(parent);
+
+        assertTrue(parent.contains(NameLearningMemory.NBT_KEY));
+        assertFalse(parent.getCompound(NameLearningMemory.NBT_KEY).contains("PetRepeatCooldown"));
     }
 
     @Test
@@ -162,5 +311,17 @@ final class NameLearningMemoryTest {
         assertTrue(loaded.ownName().isEmpty());
         assertEquals(0, loaded.repeatCooldown());
         assertTrue(loaded.petSnapshot().isEmpty());
+        assertEquals(0, loaded.petRepeatCooldown());
+    }
+
+    private static CompoundTag petMemoryTag(UUID id, String name) {
+        CompoundTag entry = new CompoundTag();
+        entry.putUUID("Id", id);
+        entry.putString("Name", name);
+        ListTag pets = new ListTag();
+        pets.add(entry);
+        CompoundTag memoryTag = new CompoundTag();
+        memoryTag.put("Pets", pets);
+        return memoryTag;
     }
 }

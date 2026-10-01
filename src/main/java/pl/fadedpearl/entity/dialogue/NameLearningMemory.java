@@ -16,15 +16,19 @@ public final class NameLearningMemory {
     public static final int MAX_PETS = 32;
     public static final int MIN_REPEAT_COOLDOWN = 2400;
     public static final int MAX_REPEAT_COOLDOWN = 4800;
+    public static final int MIN_PET_REPEAT_COOLDOWN = 3600;
+    public static final int MAX_PET_REPEAT_COOLDOWN = 7200;
 
     private static final String OWN_NAME = "OwnName";
     private static final String REPEAT_COOLDOWN = "RepeatCooldown";
     private static final String PETS = "Pets";
+    private static final String PET_REPEAT_COOLDOWN = "PetRepeatCooldown";
     private static final String PET_ID = "Id";
     private static final String PET_NAME = "Name";
 
     private String ownName = "";
     private int repeatCooldown;
+    private int petRepeatCooldown;
     private final LinkedHashMap<UUID, String> pets = new LinkedHashMap<>();
 
     public static String sanitizeName(String value) {
@@ -97,12 +101,42 @@ public final class NameLearningMemory {
         pets.put(id, safe);
     }
 
+    public void rememberPet(UUID id, String visibleName, IntUnaryOperator randomNextInt) {
+        if (id == null || sanitizeName(visibleName).isEmpty()) return;
+        if (randomNextInt == null) throw new IllegalArgumentException("Random source cannot be null");
+        rememberPet(id, visibleName);
+        resetPetRepeatCooldown(randomNextInt);
+    }
+
+    public boolean canRepeatPetName(UUID id, String visibleName) {
+        String safe = sanitizeName(visibleName);
+        return petRepeatCooldown <= 0 && id != null && !safe.isEmpty() && safe.equals(pets.get(id));
+    }
+
+    public void tickPetRepeatCooldown() {
+        if (petRepeatCooldown > 0) petRepeatCooldown--;
+    }
+
+    public void ensurePetRepeatCooldown(IntUnaryOperator randomNextInt) {
+        if (!pets.isEmpty() && petRepeatCooldown <= 0) resetPetRepeatCooldown(randomNextInt);
+    }
+
+    public void resetPetRepeatCooldown(IntUnaryOperator randomNextInt) {
+        if (randomNextInt == null) throw new IllegalArgumentException("Random source cannot be null");
+        petRepeatCooldown = MIN_PET_REPEAT_COOLDOWN
+                + randomNextInt.applyAsInt(MAX_PET_REPEAT_COOLDOWN - MIN_PET_REPEAT_COOLDOWN + 1);
+    }
+
     public Optional<String> ownName() {
         return ownName.isEmpty() ? Optional.empty() : Optional.of(ownName);
     }
 
     public int repeatCooldown() {
         return repeatCooldown;
+    }
+
+    public int petRepeatCooldown() {
+        return petRepeatCooldown;
     }
 
     public Map<UUID, String> petSnapshot() {
@@ -128,6 +162,7 @@ public final class NameLearningMemory {
                 entries.add(entry);
             });
             memory.put(PETS, entries);
+            memory.putInt(PET_REPEAT_COOLDOWN, petRepeatCooldown);
         }
         parent.put(NBT_KEY, memory);
     }
@@ -135,6 +170,7 @@ public final class NameLearningMemory {
     public void read(CompoundTag parent) {
         ownName = "";
         repeatCooldown = 0;
+        petRepeatCooldown = 0;
         pets.clear();
         if (!parent.contains(NBT_KEY, Tag.TAG_COMPOUND)) return;
         CompoundTag memory = parent.getCompound(NBT_KEY);
@@ -148,6 +184,10 @@ public final class NameLearningMemory {
             if (!entry.hasUUID(PET_ID) || !entry.contains(PET_NAME, Tag.TAG_STRING)) continue;
             String name = sanitizeName(entry.getString(PET_NAME));
             if (!name.isEmpty()) pets.put(entry.getUUID(PET_ID), name);
+        }
+        if (!pets.isEmpty() && memory.contains(PET_REPEAT_COOLDOWN, Tag.TAG_INT)) {
+            petRepeatCooldown = Math.max(0,
+                    Math.min(MAX_PET_REPEAT_COOLDOWN, memory.getInt(PET_REPEAT_COOLDOWN)));
         }
     }
 }

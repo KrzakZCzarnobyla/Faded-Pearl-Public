@@ -46,6 +46,18 @@ public final class EndermanJournalPolicy {
             behaviors.add(BehaviorEntry.SHARED_SHELTER);
         if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_SOCIAL_REPOSITION))
             behaviors.add(BehaviorEntry.SOCIAL_REPOSITION);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_SHARED_GAZE))
+            behaviors.add(BehaviorEntry.SHARED_GAZE);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_REST_NEAR))
+            behaviors.add(BehaviorEntry.REST_NEAR);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_WORLD_KNOWLEDGE))
+            behaviors.add(BehaviorEntry.WORLD_KNOWLEDGE);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_WORLD_CRAFT))
+            behaviors.add(BehaviorEntry.WORLD_CRAFT);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_NIGHT_WATCH))
+            behaviors.add(BehaviorEntry.NIGHT_WATCH);
+        if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_REUNION))
+            behaviors.add(BehaviorEntry.REUNION);
         if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_ANIMAL_CARRY))
             behaviors.add(BehaviorEntry.ANIMAL_CARRY);
         if (facts.journal().contains(JournalMemory.Discovery.ESCAPE_PEARL_PLAYER_HIT)
@@ -64,6 +76,11 @@ public final class EndermanJournalPolicy {
         if (awareness.contains(WorldAwarenessMemory.Milestone.ARMOR_UPGRADE)) days.add(DayEntry.ARMOR_UPGRADE);
         if (awareness.contains(WorldAwarenessMemory.Milestone.TAMED_ANY)) days.add(DayEntry.FIRST_TAME);
         if (awareness.contains(WorldAwarenessMemory.Milestone.BUILD_COMPLETED)) days.add(DayEntry.FIRST_BUILD);
+        if (awareness.contains(WorldAwarenessMemory.Milestone.END_PORTAL)) days.add(DayEntry.END_PORTAL);
+        if (awareness.contains(WorldAwarenessMemory.Milestone.END_ARRIVAL)) days.add(DayEntry.END_ARRIVAL);
+        if (awareness.contains(WorldAwarenessMemory.Milestone.DRAGON_DEFEATED)) days.add(DayEntry.DRAGON_DEFEATED);
+        if (awareness.contains(WorldAwarenessMemory.Milestone.DRAGON_EGG)) days.add(DayEntry.DRAGON_EGG);
+        if (awareness.contains(WorldAwarenessMemory.Milestone.END_RETURN)) days.add(DayEntry.END_RETURN);
     }
 
     private EndermanJournalPolicy() {}

@@ -23,7 +23,7 @@ public final class FadedAnimationState {
         PLAYFUL_TELEPORT, NIGHT_CLOSE, SOUND_ALERT, BRING_FLOWER, AFFECTION, HUG, GUARD,
         JUMP_REACT, CROUCH, STARE_FREEZE, STARE_TILT, TOUCH_RECOIL, TOUCH_HESITATE,
         RAIN_SHELTER, RAIN_SHIVER, DOWNED_RECOVER, CHEST_EXPOSE, EMBRACE_READY,
-        NIGHT_GAZE, SNOW_CATCH, WATCH_SLEEPING, ITEM_POINT, ITEM_INSPECT
+        NIGHT_GAZE, SNOW_CATCH, WATCH_SLEEPING, ITEM_POINT, ITEM_INSPECT, HOME_SETTLE
     }
 
     public record Snapshot(boolean healed, boolean crying, boolean playerNearby, boolean healing,
@@ -93,7 +93,7 @@ public final class FadedAnimationState {
             case RAIN_NERVOUS -> AnimationIntent.RAIN_NERVOUS;
             case WORRIED, GUARD -> AnimationIntent.WORRIED;
             case GROUND_FLOWER -> AnimationIntent.GROUND_FLOWER;
-            case REST_NEAR -> AnimationIntent.REST;
+            case REST_NEAR, HOME_SETTLE -> AnimationIntent.REST;
             case TOUCH_WOUND -> AnimationIntent.TOUCH_WOUND;
             case PEEK_CORNER -> AnimationIntent.PEEK;
             case HUG -> AnimationIntent.HUG;

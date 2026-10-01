@@ -92,7 +92,8 @@ class FadedAnimationStateTest {
                 Map.entry(SocialAction.SNOW_CATCH, AnimationIntent.SNOW_CATCH),
                 Map.entry(SocialAction.WATCH_SLEEPING, AnimationIntent.WATCH_SLEEPING),
                 Map.entry(SocialAction.ITEM_POINT, AnimationIntent.ITEM_POINT),
-                Map.entry(SocialAction.ITEM_INSPECT, AnimationIntent.ITEM_INSPECT));
+                Map.entry(SocialAction.ITEM_INSPECT, AnimationIntent.ITEM_INSPECT),
+                Map.entry(SocialAction.HOME_SETTLE, AnimationIntent.REST));
 
         assertEquals(SocialAction.values().length, expected.size());
         for (SocialAction action : SocialAction.values()) {

@@ -38,10 +38,11 @@ the Anchor's reward and the recovery delay can be adjusted separately for each w
 
 ## A note about the beta
 
-`1.8.0-beta.3` has completed its singleplayer tests on both a fresh world and a migrated test
-world. Multiplayer is available, and an earlier three-player session confirmed that each player
-can form a separate bond, but complete dedicated-server testing of restarts, disconnects,
-recovery and dimension travel is still unfinished.
+`1.9.0-beta.1` has passed automated regression, resource validation, development-client startup
+and copied-world migration checks. Some long-running and observational cases remain open for
+community testing. Multiplayer is available, and an earlier three-player session confirmed that
+each player can form a separate bond, but complete dedicated-server testing of restarts,
+disconnects, recovery and dimension travel is deferred to version 2.5.
 
 For multiplayer, please treat this as an experimental beta: back up the world first and install
 the exact same Faded Pearl JAR on the server and on every player's client.

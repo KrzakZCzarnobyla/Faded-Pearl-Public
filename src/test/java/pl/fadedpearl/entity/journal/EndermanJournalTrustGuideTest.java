@@ -27,6 +27,14 @@ final class EndermanJournalTrustGuideTest {
                 EndermanJournalSnapshot.BehaviorEntry.ANIMAL_CARRY));
         assertEquals(OptionalInt.of(60), EndermanJournalTrustGuide.requiredTrust(
                 EndermanJournalSnapshot.BehaviorEntry.SOCIAL_REPOSITION));
+        assertEquals(OptionalInt.of(12), EndermanJournalTrustGuide.requiredTrust(
+                EndermanJournalSnapshot.BehaviorEntry.SHARED_GAZE));
+        assertEquals(OptionalInt.of(35), EndermanJournalTrustGuide.requiredTrust(
+                EndermanJournalSnapshot.BehaviorEntry.REST_NEAR));
+        assertEquals(OptionalInt.of(25), EndermanJournalTrustGuide.requiredTrust(
+                EndermanJournalSnapshot.BehaviorEntry.WORLD_KNOWLEDGE));
+        assertEquals(OptionalInt.of(35), EndermanJournalTrustGuide.requiredTrust(
+                EndermanJournalSnapshot.BehaviorEntry.WORLD_CRAFT));
         assertEquals(OptionalInt.empty(), EndermanJournalTrustGuide.requiredTrust(
                 EndermanJournalSnapshot.BehaviorEntry.RESCUE));
         assertEquals(OptionalInt.empty(), EndermanJournalTrustGuide.requiredTrust(

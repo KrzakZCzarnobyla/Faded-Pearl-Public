@@ -12,12 +12,16 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import pl.fadedpearl.entity.FadedEnderman;
 import pl.fadedpearl.world.FadedPearlSavedData;
@@ -27,6 +31,20 @@ import java.util.UUID;
 
 public final class ResonatingAnchorBlock extends Block {
     public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
+    private static final VoxelShape PEDESTAL = Shapes.or(
+            box(1.0D, 0.0D, 1.0D, 15.0D, 4.0D, 15.0D),
+            box(1.0D, 2.0D, 1.0D, 4.0D, 8.0D, 4.0D),
+            box(12.0D, 2.0D, 1.0D, 15.0D, 8.0D, 4.0D),
+            box(1.0D, 2.0D, 12.0D, 4.0D, 8.0D, 15.0D),
+            box(12.0D, 2.0D, 12.0D, 15.0D, 8.0D, 15.0D),
+            box(5.0D, 3.0D, 2.0D, 11.0D, 5.0D, 5.0D),
+            box(5.0D, 3.0D, 11.0D, 11.0D, 5.0D, 14.0D),
+            box(2.0D, 3.0D, 5.0D, 5.0D, 5.0D, 11.0D),
+            box(11.0D, 3.0D, 5.0D, 14.0D, 5.0D, 11.0D));
+    private static final VoxelShape INACTIVE_SHAPE = Shapes.or(
+            PEDESTAL, box(5.0D, 4.0D, 5.0D, 11.0D, 10.0D, 11.0D));
+    private static final VoxelShape ACTIVE_SHAPE = Shapes.or(
+            PEDESTAL, box(5.0D, 8.0D, 5.0D, 11.0D, 14.0D, 11.0D));
 
     public ResonatingAnchorBlock(Properties properties) {
         super(properties);
@@ -36,6 +54,17 @@ public final class ResonatingAnchorBlock extends Block {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(ACTIVE);
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return state.getValue(ACTIVE) ? ACTIVE_SHAPE : INACTIVE_SHAPE;
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(
+            BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return state.getValue(ACTIVE) ? ACTIVE_SHAPE : INACTIVE_SHAPE;
     }
 
     @Override
@@ -84,7 +113,7 @@ public final class ResonatingAnchorBlock extends Block {
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (state.getValue(ACTIVE) && random.nextInt(2) == 0) level.addParticle(ParticleTypes.PORTAL,
                 pos.getX() + .5D + (random.nextDouble() - .5D) * .45D,
-                pos.getY() + .25D + random.nextDouble() * .8D,
+                pos.getY() + .5D + random.nextDouble() * .4D,
                 pos.getZ() + .5D + (random.nextDouble() - .5D) * .45D, 0, .015D, 0);
     }
 }
