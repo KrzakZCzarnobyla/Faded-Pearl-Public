@@ -11,6 +11,7 @@ as completed tests and not as confirmed defects.
 
 ### Deferred verification for 2.1
 
+- startup smoke using the exact JAR published as the GitHub 2.0.0 release asset;
 - a real portal transition that briefly leaves both dimension copies loaded (`portal grace`);
 - rejection of a late-loaded stale companion copy by the recovery epoch;
 - comparative performance profiles with `0`, `1`, `10` and `25` active Fades;
