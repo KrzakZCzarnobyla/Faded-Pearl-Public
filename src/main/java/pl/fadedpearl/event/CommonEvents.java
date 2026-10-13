@@ -17,6 +17,7 @@ import net.minecraftforge.event.entity.EntityMountEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.living.AnimalTameEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -27,6 +28,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 import pl.fadedpearl.FadedPearl;
 import pl.fadedpearl.entity.FadedEnderman;
+import pl.fadedpearl.entity.movement.RespawnFollowTeleportTracker;
 import pl.fadedpearl.item.PulsatingPearlItem;
 import pl.fadedpearl.registry.ModEntities;
 import pl.fadedpearl.registry.ModItems;
@@ -34,6 +36,7 @@ import pl.fadedpearl.world.FadedPearlSavedData;
 import pl.fadedpearl.world.AnchorRecallService;
 import pl.fadedpearl.world.CompanionRecoveryService;
 import pl.fadedpearl.world.CaveConnectivity;
+import pl.fadedpearl.world.EchoNeedleService;
 import pl.fadedpearl.config.FadedServerConfig;
 
 import java.util.List;
@@ -80,6 +83,7 @@ public final class CommonEvents {
         if (event.phase == TickEvent.Phase.END) {
             AnchorRecallService.tick(event.getServer());
             CompanionRecoveryService.tick(event.getServer());
+            EchoNeedleService.tick(event.getServer());
         }
     }
 
@@ -108,14 +112,39 @@ public final class CommonEvents {
     }
 
     @SubscribeEvent
+    public static void protectCarriedPlayerFromFall(LivingFallEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player
+                && player.getVehicle() instanceof FadedEnderman companion
+                && companion.getControllingPassenger() == player) {
+            player.fallDistance = 0.0F;
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         AnchorRecallService.cancel(event.getEntity().getServer(), event.getEntity().getUUID());
+        RespawnFollowTeleportTracker.clearPlayer(event.getEntity().getServer(), event.getEntity().getUUID());
+        EchoNeedleService.remove(event.getEntity().getUUID());
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRespawned(PlayerEvent.PlayerRespawnEvent event) {
+        if (event.isEndConquered() || !(event.getEntity() instanceof ServerPlayer player)) return;
+        RespawnFollowTeleportTracker.markDeathRespawn(player.getServer(), player.getUUID());
+    }
+
+    @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        EchoNeedleService.copyHintProgress(event.getOriginal(), event.getEntity());
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         AnchorRecallService.clear(event.getServer());
         CompanionRecoveryService.clear(event.getServer());
+        RespawnFollowTeleportTracker.clear(event.getServer());
+        EchoNeedleService.clear();
         BUILD_OBSERVATIONS.clear();
     }
 

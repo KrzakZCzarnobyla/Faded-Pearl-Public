@@ -1,6 +1,5 @@
 package pl.fadedpearl.client;
 
-import com.mojang.math.Axis;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -14,12 +13,12 @@ public final class CarryRenderEvents {
     @SubscribeEvent
     public static void renderCarriedPlayer(RenderPlayerEvent.Pre event) {
         Player player = event.getEntity();
-        if (!(player.getVehicle() instanceof FadedEnderman)) return;
+        if (!(player.getVehicle() instanceof FadedEnderman companion)) return;
 
-        // Rotate the rendered body into the cradle pose without rotating the player's camera.
-        event.getPoseStack().translate(0.0D, 0.95D, 0.0D);
-        event.getPoseStack().mulPose(Axis.ZP.rotationDegrees(92.0F));
-        event.getPoseStack().translate(0.0D, -0.95D, 0.0D);
+        // Keep the rendered body upright and aligned with the carrier without touching camera yaw.
+        float carriedYaw = companion.yBodyRot;
+        player.setYBodyRot(carriedYaw);
+        player.yBodyRotO = carriedYaw;
     }
 
     private CarryRenderEvents() {}

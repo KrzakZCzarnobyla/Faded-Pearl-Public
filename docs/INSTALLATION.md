@@ -11,7 +11,7 @@
 
 Faded Pearl and both libraries must be installed in the `mods` directory on the client and the
 server. In multiplayer, the server and every player must use the exact same Faded Pearl JAR.
-Do not mix different beta candidates in one session.
+Do not mix different Faded Pearl versions in one session.
 
 ## Experimental multiplayer
 
@@ -35,8 +35,7 @@ are described in `docs/CONFIGURATION.md`. Edit the file while the world or serve
 
 ## Updating an existing world
 
-Beta builds are intended for testing and should not be opened first on the only copy of an
-important world.
+Do not open a newly updated mod setup first on the only copy of an important world.
 
 1. Close the game or stop the server and wait for saving to finish.
 2. Copy the entire world directory to a safe location.
@@ -62,22 +61,22 @@ both the world backup made before the update and the matching older mod set.
 
 Current public builds, downloads and release notes are available on
 [GitHub Releases](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases). Read the
-[known limitations](KNOWN_LIMITATIONS.md) before using the beta in an important world.
+[known limitations](KNOWN_LIMITATIONS.md) before using the mod in an important world.
 
 ## Verifying the download
 
-Compare the file name, size and SHA-256 with the values published for the release.
-`faded_pearl-1.9.0-beta.1.jar` is `1546946` bytes and has this SHA-256:
-`932DA8A8A83D0E5100B7402757A8A1D3BBF90C90F44FA7D8E5B12161238C1253`.
+Compare the file name, size and SHA-256 with the values published for the release. The prepared
+`faded_pearl-2.0.0.jar` is `1570973` bytes and has SHA-256
+`E6C3857DAF751373096C228150B67E4B12E81111845434760FA442BCE24A994E`.
 
 Windows PowerShell:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\faded_pearl-1.9.0-beta.1.jar
+Get-FileHash -Algorithm SHA256 -LiteralPath .\faded_pearl-2.0.0.jar
 ```
 
 Linux/macOS:
 
 ```bash
-sha256sum faded_pearl-1.9.0-beta.1.jar
+sha256sum faded_pearl-2.0.0.jar
 ```

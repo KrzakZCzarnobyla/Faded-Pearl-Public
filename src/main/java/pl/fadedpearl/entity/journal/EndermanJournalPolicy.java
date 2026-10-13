@@ -58,6 +58,8 @@ public final class EndermanJournalPolicy {
             behaviors.add(BehaviorEntry.NIGHT_WATCH);
         if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_REUNION))
             behaviors.add(BehaviorEntry.REUNION);
+        if (facts.journal().contains(JournalMemory.Discovery.DAY_MEETING))
+            behaviors.add(BehaviorEntry.ECHO_NEEDLE);
         if (facts.journal().contains(JournalMemory.Discovery.BEHAVIOR_ANIMAL_CARRY))
             behaviors.add(BehaviorEntry.ANIMAL_CARRY);
         if (facts.journal().contains(JournalMemory.Discovery.ESCAPE_PEARL_PLAYER_HIT)

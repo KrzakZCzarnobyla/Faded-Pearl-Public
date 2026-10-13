@@ -165,6 +165,16 @@ public final class FadedPearlSavedData extends SavedData {
         return caveEncounters.sitesIn(dimension.location().toString()).stream()
                 .map(CaveEncounterLedger.Site::pos).toList();
     }
+    List<EchoNeedleLocator.Candidate> echoNeedleCandidates(ResourceKey<Level> dimension) {
+        return echoNeedleCandidates(dimension.location().toString());
+    }
+    List<EchoNeedleLocator.Candidate> echoNeedleCandidates(String dimension) {
+        return caveEncounters.sitesIn(dimension).stream()
+                .map(site -> new EchoNeedleLocator.Candidate(site.companion(), site.dimension(), site.pos(),
+                        !isDead(site.companion()), isHealed(site.companion()),
+                        ownership.isUnclaimed(site.companion())))
+                .toList();
+    }
     public boolean canPlaceCaveEncounter(ResourceKey<Level> dimension, BlockPos pos) {
         return caveEncounters.canPlace(dimension.location().toString(), pos);
     }

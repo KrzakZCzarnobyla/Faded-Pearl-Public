@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.0.0] — 2026-10-13
+
+Faded Pearl 2.0 is the first full release of the mod. It preserves companion data from the
+1.8/1.9 line while consolidating the complete singleplayer bond, Journal and recovery loop.
+
+### Added
+
+- the Echo Needle HUD, which helps a player without a companion locate a nearby wounded Fade;
+- stronger flower-coloured healing particles and a clearer progression of the healed form;
+- discoverable Journal guidance for the Echo Needle and expanded companion behaviours.
+
+### Changed
+
+- completely reworked walking and running animations with clearer weight, contact and speed;
+- reduced repetition of the held-item gesture during ordinary building and exploration;
+- delayed the companion's arrival briefly after the bonded player respawns;
+- kept multiplayer available but explicitly experimental until the dedicated 2.5 cycle.
+
+### Fixed
+
+- stabilized the carried player's pose and synchronized the Fade's carrying locomotion in first
+  and third person;
+- prevented fall damage to a player being carried during a shared drop;
+- retained the companion, commands, home, Journal and relationship data across tested 1.8 and
+  1.9 world migrations;
+- preserved the downed companion through the tested interrupted multiplayer session.
+
+### QA status
+
+- automated build and artifact validation, fresh-world play, copied 1.8/1.9 worlds, a clean
+  profile and the owner's real modpack passed;
+- remaining targeted observations and stress profiles are documented in
+  `docs/KNOWN_LIMITATIONS.md` and moved to the 2.1 verification cycle rather than reported as
+  completed;
+- players updating an important world should still create a full backup first.
+
 ## [1.9.0-beta.1] — public community beta
 
 This candidate is approved for public community testing. Automated regression, copied-world

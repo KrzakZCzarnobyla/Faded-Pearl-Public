@@ -87,6 +87,17 @@ final class EndermanJournalPolicyTest {
     }
 
     @Test
+    void echoNeedleIsDocumentedOnlyAfterTheFirstMeeting() {
+        EndermanJournalSnapshot hidden = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(), Set.of(), false, Optional.empty(), false, false, 0, 0));
+        EndermanJournalSnapshot met = EndermanJournalPolicy.snapshot(new EndermanJournalPolicy.Facts(
+                Set.of(JournalMemory.Discovery.DAY_MEETING), Set.of(), false,
+                Optional.empty(), false, false, 0, 0));
+        assertFalse(hidden.behaviors().contains(BehaviorEntry.ECHO_NEEDLE));
+        assertTrue(met.behaviors().contains(BehaviorEntry.ECHO_NEEDLE));
+    }
+
+    @Test
     void fadeOriginRevealsOnlyAfterPersistentDiscovery() {
         EndermanJournalPolicy.Facts facts = new EndermanJournalPolicy.Facts(
                 Set.of(JournalMemory.Discovery.BASIC_FADE_ORIGIN), Set.of(), false,

@@ -36,15 +36,19 @@ feel like somebody who is gradually learning to live beside you.
 The mod includes English and Polish language support. Cave encounters, trust gains and losses,
 the Anchor's reward and the recovery delay can be adjusted separately for each world.
 
-## A note about the beta
+## Release status
 
-`1.9.0-beta.1` has passed automated regression, resource validation, development-client startup
-and copied-world migration checks. Some long-running and observational cases remain open for
-community testing. Multiplayer is available, and an earlier three-player session confirmed that
-each player can form a separate bond, but complete dedicated-server testing of restarts,
-disconnects, recovery and dimension travel is deferred to version 2.5.
+Faded Pearl 2.0.0 has passed automated QA, fresh-world play, migration tests on copied 1.8 and
+1.9 worlds, and tests in both a clean Forge profile and the creator's real modpack. A small set
+of targeted recovery, combat-presentation and performance checks continues in the 2.1 cycle;
+these are unverified areas, not known failures. Back up an important world before updating and
+please report anything unusual with the game log and a description of what happened.
 
-For multiplayer, please treat this as an experimental beta: back up the world first and install
+Multiplayer is available, and earlier sessions confirmed separate bonds for several players,
+but complete dedicated-server testing of restarts, disconnects, simultaneous recovery and
+dimension travel is still unfinished.
+
+For multiplayer, please treat support as experimental: back up the world first and install
 the exact same Faded Pearl JAR on the server and on every player's client.
 
 ## Requirements
@@ -74,7 +78,7 @@ Before installing or updating, please read the full
 The repository also contains a reference for
 [world configuration](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/blob/main/docs/CONFIGURATION.md)
 and an honest list of the
-[current beta limitations](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/blob/main/docs/KNOWN_LIMITATIONS.md).
+[current limitations](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/blob/main/docs/KNOWN_LIMITATIONS.md).
 
 ## Links
 

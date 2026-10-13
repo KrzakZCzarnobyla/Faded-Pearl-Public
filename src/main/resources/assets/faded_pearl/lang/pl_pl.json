@@ -445,8 +445,8 @@
   "journal.faded_pearl.behavior.own_name.use": "Mogę nadać mu imię znacznikiem. Z czasem zacznie reagować na jego brzmienie.",
   "journal.faded_pearl.behavior.named_pets.use": "Gdy nazwę swoje zwierzę i pozwolę im się spotkać, może sam odezwać się do niego po imieniu. Kiedy już je zapamięta, podczas późniejszego spokojnego spotkania może cicho użyć go ponownie; takie powtórzenia są celowo rzadkie.",
   "journal.faded_pearl.behavior.home.use": "Rezonująca kotwica wyznacza dom. Uniesiona, świetlista perła oznacza aktywną więź. Polecenie Dom skieruje go do zapamiętanego miejsca. Gdy jest już bezpiecznie w pobliżu, może chodzić wokół niego albo usiąść i odpocząć; zagrożenie i pilne obowiązki zawsze przerywają ten odpoczynek.",
-  "journal.faded_pearl.behavior.commands.use": "Kucam i klikam go PPM pustą główną ręką, aby otworzyć menu poleceń: Podążaj, Zostań, Odpocznij lub Dom.",
-  "journal.faded_pearl.behavior.carry.use": "Przy odpowiednim zaufaniu klikam go dwa razy PPM pustą główną ręką w krótkim odstępie. Podczas noszenia PPM pozwala spróbować bezpiecznego teleportu; Shift schodzi z jego ramion.",
+  "journal.faded_pearl.behavior.commands.use": "Kucam i klikam go PPM pustą główną ręką, aby otworzyć menu poleceń: Podążaj, Zostań, Odpocznij lub Dom. Przy poleceniu Podążaj, jeśli zginę i odrodzę się daleko, odczeka kilka uderzeń serca, zanim spróbuje bezpiecznie do mnie wrócić.",
+  "journal.faded_pearl.behavior.carry.use": "Przy odpowiednim zaufaniu klikam go dwa razy PPM pustą główną ręką w krótkim odstępie. Podczas noszenia PPM pozwala spróbować bezpiecznego teleportu; Shift schodzi z jego ramion. Jeśli spadamy razem, gdy mnie niesie, osłania mnie przy lądowaniu.",
   "journal.faded_pearl.behavior.rescue.use": "Reaguje sam, gdy grozi mi upadek, ogień, lawa lub utrata zdrowia. Musi być przytomny i mieć miejsce na bezpieczne lądowanie.",
   "journal.faded_pearl.behavior.weather_reaction.use": "To jego własna reakcja na pogodę. Nie muszę wydawać polecenia; warto obserwować, czy deszcz lub śnieg mogą go dosięgnąć.",
   "journal.faded_pearl.behavior.shared_shelter.use": "Gdy razem przeczekujemy deszcz pod osłoną, może zareagować spokojniej. Osłona musi naprawdę chronić go przed opadami.",
@@ -548,5 +548,9 @@
   "journal.faded_pearl.behavior.animal_carry.title": "Mały pasażer",
   "journal.faded_pearl.behavior.animal_carry.text": "Zatrzymał się przy małym zwierzęciu i uniósł je ostrożnie. Przez chwilę wędrowało w jego ramionach, choć nie prosiło o taką podróż. Patrzyłam, jak strzeże każdego kroku, gotów odstawić je na ziemię, gdy tylko będzie trzeba.",
   "journal.faded_pearl.behavior.escape_pearl.title": "Perła uniku",
-  "journal.faded_pearl.behavior.escape_pearl.text": "Kiedy go uderzyłam, odsunął się ode mnie, a ja przypomniałam sobie chłodny ciężar Perły Endermana. Jej energia zawsze służyła ucieczce. Może potrafiłabym zamknąć w niej jeden bezpieczny krok — przeznaczony tylko dla niego."
+  "journal.faded_pearl.behavior.escape_pearl.text": "Kiedy go uderzyłam, odsunął się ode mnie, a ja przypomniałam sobie chłodny ciężar Perły Endermana. Jej energia zawsze służyła ucieczce. Może potrafiłabym zamknąć w niej jeden bezpieczny krok — przeznaczony tylko dla niego.",
+  "hint.faded_pearl.echo_needle": "Igła echa przy pasku doświadczenia wskazuje pobliskiego rannego Fade'a; mały znak pokazuje: niżej, podobny poziom lub wyżej.",
+  "journal.faded_pearl.behavior.echo_needle.use": "Gdy jestem pod ziemią i nie mam jeszcze własnego Fade'a, igła przy pasku doświadczenia pojawia się w promieniu 96 bloków od rannego Fade'a. Ostrze pokazuje kierunek, a mały znak — czy płacz dobiega z dołu, z podobnej wysokości czy z góry. Nigdy nie ujawnia dokładnych współrzędnych.",
+  "journal.faded_pearl.behavior.echo_needle.title": "Igła utkana z echa",
+  "journal.faded_pearl.behavior.echo_needle.text": "Płacz prześlizgiwał się między kamieniem i cieniem, nie pozwalając określić swojego źródła. Wtedy przy moim doświadczeniu poruszyła się mała igła, pochylając ku głosowi, którego jeszcze nie widziałam. Nie zdradzała, gdzie dokładnie był. Pomagała jedynie słuchać we właściwą stronę."
 }

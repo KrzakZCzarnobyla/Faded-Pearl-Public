@@ -78,7 +78,7 @@ final class EndermanJournalContractTest {
         Set<String> polishKeys = polish.keySet().stream().filter(EndermanJournalContractTest::journalKey)
                 .collect(java.util.stream.Collectors.toSet());
         assertEquals(englishKeys, polishKeys);
-        assertEquals(119, englishKeys.size());
+        assertEquals(122, englishKeys.size());
         for (EndermanJournalSnapshot.DayEntry entry : EndermanJournalSnapshot.DayEntry.values()) {
             String base = "journal.faded_pearl.day."
                     + entry.name().toLowerCase(java.util.Locale.ROOT);
@@ -96,6 +96,7 @@ final class EndermanJournalContractTest {
         assertTrue(englishKeys.contains("journal.faded_pearl.behavior.night_watch.text"));
         assertTrue(englishKeys.contains("journal.faded_pearl.behavior.reunion.text"));
         assertTrue(englishKeys.contains("journal.faded_pearl.behavior.animal_carry.text"));
+        assertTrue(englishKeys.contains("journal.faded_pearl.behavior.echo_needle.text"));
         assertTrue(englishKeys.contains("journal.faded_pearl.basic.trust_value"));
         assertTrue(englishKeys.contains("journal.faded_pearl.basic.origin.fade_story"));
         assertTrue(englishKeys.contains("toast.faded_pearl.journal.title"));

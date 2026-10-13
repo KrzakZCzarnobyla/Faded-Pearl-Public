@@ -8,7 +8,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import pl.fadedpearl.FadedPearl;
 
 public final class ModNetwork {
-    private static final String VERSION = "5";
+    private static final String VERSION = "6";
     public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
             .named(new ResourceLocation(FadedPearl.MOD_ID, "main"))
             .networkProtocolVersion(() -> VERSION)
@@ -30,6 +30,10 @@ public final class ModNetwork {
                 JournalDiscoveryPacket::decode, JournalDiscoveryPacket::handle);
         CHANNEL.registerMessage(id++, TrustLossPacket.class, TrustLossPacket::encode,
                 TrustLossPacket::decode, TrustLossPacket::handle);
+        CHANNEL.registerMessage(id++, EchoNeedlePacket.class, EchoNeedlePacket::encode,
+                EchoNeedlePacket::decode, EchoNeedlePacket::handle);
+        CHANNEL.registerMessage(id++, EchoNeedleHintPacket.class, EchoNeedleHintPacket::encode,
+                EchoNeedleHintPacket::decode, EchoNeedleHintPacket::handle);
     }
 
     public static void openCommandMenu(ServerPlayer player, int entityId, int activeCommand) {
@@ -48,6 +52,14 @@ public final class ModNetwork {
     public static void notifyTrustLoss(ServerPlayer player, int points,
                                        pl.fadedpearl.entity.trust.TrustLossNotice.Reason reason) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new TrustLossPacket(points, reason));
+    }
+
+    public static void updateEchoNeedle(ServerPlayer player, EchoNeedlePacket packet) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+
+    public static void showEchoNeedleHint(ServerPlayer player) {
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new EchoNeedleHintPacket());
     }
 
     private ModNetwork() {}

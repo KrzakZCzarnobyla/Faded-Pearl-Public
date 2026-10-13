@@ -445,8 +445,8 @@
   "journal.faded_pearl.behavior.own_name.use": "I can name him with a name tag. In time, he may start responding to its sound.",
   "journal.faded_pearl.behavior.named_pets.use": "If I name one of my animals and let them meet, he may address it by name on his own. Once he has learned it, he can quietly use that name again during a later calm meeting; these repetitions are deliberately rare.",
   "journal.faded_pearl.behavior.home.use": "A Resonating Anchor marks home. Its raised, luminous pearl means the bond is active. The Home command sends him toward the remembered place. Once safely nearby, he may wander around it or sit down to rest; danger and urgent duties always interrupt that rest.",
-  "journal.faded_pearl.behavior.commands.use": "I crouch and right-click him with an empty main hand to open the command menu: Follow, Stay, Rest or Home.",
-  "journal.faded_pearl.behavior.carry.use": "At enough trust, I right-click him twice with an empty main hand in quick succession. While carried, right-click attempts a safe teleport; Shift lets me dismount.",
+  "journal.faded_pearl.behavior.commands.use": "I crouch and right-click him with an empty main hand to open the command menu: Follow, Stay, Rest or Home. On Follow, if I die and respawn far away, he waits a few heartbeats before attempting a safe return to me.",
+  "journal.faded_pearl.behavior.carry.use": "At enough trust, I right-click him twice with an empty main hand in quick succession. While carried, right-click attempts a safe teleport; Shift lets me dismount. If we fall together while he is carrying me, he shields me from the landing.",
   "journal.faded_pearl.behavior.rescue.use": "He responds on his own when I risk a fall, fire, lava or low health. He must be conscious and have a safe landing spot.",
   "journal.faded_pearl.behavior.weather_reaction.use": "This is his own response to the weather. I need not give an order; I can watch whether rain or snow can reach him.",
   "journal.faded_pearl.behavior.shared_shelter.use": "When we wait out rain together under cover, he may react more calmly. The shelter must really keep the rain off him.",
@@ -548,5 +548,9 @@
   "journal.faded_pearl.behavior.animal_carry.title": "A small passenger",
   "journal.faded_pearl.behavior.animal_carry.text": "He stopped beside a small animal and lifted it gently. For a little while it traveled in his arms, though it had not asked to go. I watched him mind every step, ready to set it back on the ground whenever he needed to.",
   "journal.faded_pearl.behavior.escape_pearl.title": "Evasion Pearl",
-  "journal.faded_pearl.behavior.escape_pearl.text": "When I struck him, he drew away from me, and I remembered the cold weight of an Ender Pearl. Its energy had always been meant for escape. Perhaps I could seal one safe step inside it — meant for him alone."
+  "journal.faded_pearl.behavior.escape_pearl.text": "When I struck him, he drew away from me, and I remembered the cold weight of an Ender Pearl. Its energy had always been meant for escape. Perhaps I could seal one safe step inside it — meant for him alone.",
+  "hint.faded_pearl.echo_needle": "The echo needle by the XP bar points toward a nearby wounded Fade; its small mark shows lower, level, or higher.",
+  "journal.faded_pearl.behavior.echo_needle.use": "While I am underground without a Fade of my own, the needle beside my experience bar appears within 96 blocks of a wounded Fade. Its point shows direction and the small mark shows whether the cry comes from lower, a similar height, or higher. It never reveals exact coordinates.",
+  "journal.faded_pearl.behavior.echo_needle.title": "A needle made of echoes",
+  "journal.faded_pearl.behavior.echo_needle.text": "The crying seemed to slip between stone and shadow, impossible to place. Then a small needle stirred beside my experience, leaning toward a voice I could not yet see. It did not tell me where he was. It only helped me listen in the right direction."
 }

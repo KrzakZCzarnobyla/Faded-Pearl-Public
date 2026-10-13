@@ -1,39 +1,37 @@
 # Faded Pearl
 
-<p align="center">
-  <img src="docs/media/faded-pearl-curseforge-icon-400.png" width="240" height="240" alt="Faded Pearl icon">
-</p>
-
 Faded Pearl is an emotional companion mod for Minecraft Forge 1.20.1.
 
 Somewhere beneath the surface, you may find a wounded Enderman crying in the dark. He is a
 Fade — one of the rare Endermen who escaped the Ender Dragon's influence. Healing him begins a
-longer relationship built through trust, exploration and the way you treat him.
+long relationship shaped by trust, exploration and the way you treat him.
 
 ## Features
 
 - natural wounded Fade encounters in underground caves;
-- a gradual healing and trust system instead of instant taming;
-- Follow, Stay, Rest and Home companion commands;
-- protection, rescue, carrying and safe joint teleportation;
-- reactions to items, animals, weather, villages, discoveries and other Fade companions;
+- healing, trust and a persistent personal companion;
+- Follow, Stay, Rest and Home commands;
+- protection, rescue, carrying and safe shared teleportation;
+- reactions to items, animals, weather, villages, discoveries and other Fades;
 - calm routines, world interests and persistent relationship memories;
 - End-related story memories discovered through shared exploration;
-- a discoverable Enderman Journal containing memories, controls and recipes;
-- the redesigned Resonating Anchor, companion recovery and the permanent Escape Pearl upgrade;
+- a discoverable Enderman Journal with memories, controls and recipes;
+- the Resonating Anchor, companion recovery and the permanent Escape Pearl upgrade;
 - separate companion relationships for different players.
 
-## Current release
+## Faded Pearl 2.0.0
 
-The current public build is **1.9.0-beta.1**.
+Version 2.0.0 is the first full release. Automated checks, fresh-world play, copied 1.8 and 1.9
+worlds, a clean Forge profile and the owner's real modpack passed. Remaining targeted
+observations and stress profiles are listed in
+[Known limitations](docs/KNOWN_LIMITATIONS.md) and continue in the 2.1 verification cycle.
 
-Automated regression, resource validation, development-client startup and copied-world migration
-checks have passed. Several long-running and observational cases remain open for community testing.
-Multiplayer is available as an experimental beta feature, but complete dedicated-server regression
-is deferred to version 2.5. Back up the world and use the exact same Faded Pearl JAR on the server
-and every client.
+Multiplayer is available as an **experimental feature**. An earlier three-player session
+confirmed the basic companion loop, but 2.0.0 has not received a complete dedicated-server
+regression covering restarts, disconnects, recovery and dimension travel. Back up important
+worlds and install the exact same Faded Pearl JAR on the server and every client.
 
-[Download Faded Pearl 1.9.0-beta.1](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases/tag/v1.9.0-beta.1)
+[Download Faded Pearl 2.0.0](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/releases/tag/v2.0.0)
 
 ## Requirements
 
@@ -43,10 +41,10 @@ and every client.
 - GeckoLib 4.8.4
 - SmartBrainLib 1.15
 
-See the [release notes](docs/RELEASE_NOTES_1.9.0-beta.1.md),
+Before updating an important world, make a complete backup. See the
 [installation and update guide](docs/INSTALLATION.md),
-[world configuration reference](docs/CONFIGURATION.md) and
-[known beta limitations](docs/KNOWN_LIMITATIONS.md) before using the mod in an important world.
+[server configuration reference](docs/CONFIGURATION.md) and
+[known limitations](docs/KNOWN_LIMITATIONS.md).
 
 Problems can be reported through the
 [public issue tracker](https://github.com/KrzakZCzarnobyla/Faded-Pearl-Public/issues).

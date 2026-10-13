@@ -49,6 +49,7 @@ import net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;
 import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.ai.util.LandRandomPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -90,11 +91,13 @@ import pl.fadedpearl.entity.behavior.FadedWorldInterestCatalog;
 import pl.fadedpearl.entity.animation.FadedAnimationState;
 import pl.fadedpearl.entity.interaction.FadedInteractionHandler;
 import pl.fadedpearl.entity.movement.FadedMovementCoordinator;
+import pl.fadedpearl.entity.movement.RespawnFollowTeleportTracker;
 import pl.fadedpearl.entity.persistence.FadedPersistenceCodec;
 import pl.fadedpearl.entity.protection.FadedProtectionController;
 import pl.fadedpearl.entity.protection.EscapePearlPolicy;
 import pl.fadedpearl.entity.sound.FadedVoiceController;
 import pl.fadedpearl.entity.social.FadedSocialController;
+import pl.fadedpearl.entity.social.HeldItemReactionPolicy;
 import pl.fadedpearl.entity.social.SmallAnimalCarryPolicy;
 import pl.fadedpearl.entity.trust.FadedTrustManager;
 import pl.fadedpearl.entity.trust.TrustLossNotice;
@@ -228,6 +231,10 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     private Monster protectorScanAttacker;
     private int carryActionTicks;
     private boolean hadCarriedPassenger;
+    private boolean carryAnimationPositionInitialized;
+    private double lastCarryAnimationX;
+    private double lastCarryAnimationZ;
+    private int carryMovementAnimationTicks;
     private UUID animalCarryTarget;
     private int animalCarryApproachTicks;
     private int animalCarryTicks;
@@ -302,6 +309,10 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     private long lastThoughtTick = Long.MIN_VALUE;
     private final List<PendingDialogue> deferredDialogues = new ArrayList<>();
     private int socialRepositionCooldown = 600;
+    private int heldItemReactionCooldown;
+    private Item lastObservedHeldItem = Items.AIR;
+    private boolean heldItemChangePending;
+    private int heldItemStableTicks;
     private int socialRepositionTicks;
     private BlockPos socialRepositionTarget;
     private Vec3 socialRepositionFriendOrigin;
@@ -966,6 +977,11 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                 setHealth(getMaxHealth());
                 if (!player.getAbilities().instabuild) held.shrink(1);
                 data.markHealed(getUUID());
+                int healingColor = getHealingColor();
+                Vector3f healingRgb = new Vector3f(((healingColor >> 16) & 255) / 255.0F,
+                        ((healingColor >> 8) & 255) / 255.0F, (healingColor & 255) / 255.0F);
+                ((ServerLevel) level()).sendParticles(new DustParticleOptions(healingRgb, 0.8F),
+                        getX(), getY() + 1.45D, getZ(), 36, .7D, 1.25D, .7D, .035D);
                 ((ServerLevel) level()).sendParticles(ParticleTypes.PORTAL, getX(), getY() + 1.5D, getZ(), 70,
                         .65D, 1.15D, .65D, .08D);
                 ((ServerLevel) level()).sendParticles(ParticleTypes.HEART, getX(), getY() + 2.1D, getZ(), 8,
@@ -1573,6 +1589,9 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             if (warningCooldown > 0) warningCooldown--;
             if (growlCooldown > 0) growlCooldown--;
             if (worldReactionCooldown > 0) worldReactionCooldown--;
+            heldItemReactionCooldown = HeldItemReactionPolicy.tickCooldown(heldItemReactionCooldown);
+            if (lastObservedHeldItem != Items.AIR && heldItemStableTicks < Integer.MAX_VALUE)
+                heldItemStableTicks++;
             curiosityCooldown = ItemCuriosityStateMachine.advanceCooldown(
                     curiosityCooldown, curiosityCooldownStartedThisTick);
             curiosityCooldownStartedThisTick = false;
@@ -1625,10 +1644,28 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
 
     private void syncCarryAnimationMovement() {
         boolean carrying = isVehicle() || getCarryAction() == CarryAction.CARRYING;
-        double movedX = getX() - xo;
-        double movedZ = getZ() - zo;
-        boolean moving = carrying && (movedX * movedX + movedZ * movedZ > 0.0004D
-                || getDeltaMovement().horizontalDistanceSqr() > 0.0004D);
+        if (!carrying) {
+            carryAnimationPositionInitialized = false;
+            carryMovementAnimationTicks = 0;
+            if (entityData.get(CARRY_MOVING)) entityData.set(CARRY_MOVING, false);
+            return;
+        }
+
+        double currentX = getX();
+        double currentZ = getZ();
+        boolean movedSinceLastTick = carryAnimationPositionInitialized
+                && ((currentX - lastCarryAnimationX) * (currentX - lastCarryAnimationX)
+                + (currentZ - lastCarryAnimationZ) * (currentZ - lastCarryAnimationZ) > 0.0004D);
+        lastCarryAnimationX = currentX;
+        lastCarryAnimationZ = currentZ;
+        carryAnimationPositionInitialized = true;
+
+        if (movedSinceLastTick || getDeltaMovement().horizontalDistanceSqr() > 0.0004D) {
+            carryMovementAnimationTicks = 3;
+        } else if (carryMovementAnimationTicks > 0) {
+            carryMovementAnimationTicks--;
+        }
+        boolean moving = carryMovementAnimationTicks > 0;
         if (entityData.get(CARRY_MOVING) != moving) entityData.set(CARRY_MOVING, moving);
     }
 
@@ -1917,6 +1954,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
 
     @Override
     protected void tickRidden(Player player, Vec3 input) {
+        player.fallDistance = 0.0F;
         setYRot(player.getYRot());
         yRotO = getYRot();
         setXRot(player.getXRot() * 0.3F);
@@ -1928,6 +1966,10 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     protected Vec3 getRiddenInput(Player player, Vec3 input) {
         float forward = player.zza;
         if (forward <= 0.0F) forward *= 0.25F;
+        if (!level().isClientSide) {
+            boolean riderMoving = Math.abs(player.xxa) > 0.001F || Math.abs(forward) > 0.001F;
+            if (entityData.get(CARRY_MOVING) != riderMoving) entityData.set(CARRY_MOVING, riderMoving);
+        }
         return new Vec3(player.xxa * 0.42F, input.y, forward);
     }
 
@@ -1959,12 +2001,25 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             moveFunction.accept(passenger, position.x, position.y, position.z);
             return;
         }
+        if (passenger instanceof Player player) {
+            player.fallDistance = 0.0F;
+            float carriedYaw = yBodyRot;
+            player.setYBodyRot(carriedYaw);
+            player.yBodyRotO = carriedYaw;
+        }
         double yaw = Math.toRadians(getYRot());
         double forward = 0.58D;
         double side = 0.05D;
         double x = getX() - Math.sin(yaw) * forward + Math.cos(yaw) * side;
         double z = getZ() + Math.cos(yaw) * forward + Math.sin(yaw) * side;
         moveFunction.accept(passenger, x, getY() + 2.05D, z);
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        if (passenger instanceof Player) passenger.fallDistance = 0.0F;
+        super.removePassenger(passenger);
+        if (passenger instanceof Player) passenger.fallDistance = 0.0F;
     }
 
     private Vec3 animalCarryPosition(Animal animal) {
@@ -2278,7 +2333,9 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                 || friend.getOffhandItem().is(ItemTags.SMALL_FLOWERS);
         boolean playerGesture = friend.isCrouching()
                 || (!friend.onGround() && friend.getDeltaMovement().y > 0.08D);
-        boolean interestingItem = !friend.getMainHandItem().isEmpty() || !friend.getOffhandItem().isEmpty();
+        boolean interestingItem = observeHeldItem(friend);
+        boolean heldItemReactionReady = HeldItemReactionPolicy.canReact(
+                interestingItem, heldItemChangePending, heldItemStableTicks, heldItemReactionCooldown);
         boolean idleBlocked = socialActionCooldown > 0
                 || getDeltaMovement().horizontalDistanceSqr() > 0.0025D;
         FadedSocialController.Decision decision = FadedSocialController.resolve(new FadedSocialController.Snapshot(
@@ -2289,7 +2346,8 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                 friend.isSleeping(), !level().isDay() && distanceToSqr(friend) > 16.0D
                         && getCommand() == CompanionCommand.FOLLOW,
                 flowerHeld && socialActionCooldown <= 0 && getSocialAction() != SocialAction.FLOWER_INTEREST,
-                playerGesture && socialActionCooldown <= 0, interestingItem && socialActionCooldown <= 0,
+                playerGesture && socialActionCooldown <= 0,
+                heldItemReactionReady && socialActionCooldown <= 0,
                 socialActionTicks > 0, worldReactionCooldown <= 0, idleBlocked));
 
         if (decision.friendHurt()) {
@@ -2423,9 +2481,7 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         }
 
         if (decision.intent() == FadedSocialController.Intent.HELD_ITEM) {
-            setSocialAction(SocialAction.HELD_ITEM);
-            socialActionTicks = 70;
-            socialActionCooldown = 140;
+            startHeldItemReaction();
             queueLookAt(friend, 25.0F, 25.0F, "held item");
             return;
         }
@@ -3094,14 +3150,20 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         Villager villager = level().getEntitiesOfClass(Villager.class, friend.getBoundingBox().inflate(12.0D), Villager::isAlive)
                 .stream().findFirst().orElse(null);
         if (villager != null) reactions.add("villager");
-        if (!friend.getMainHandItem().isEmpty()) reactions.add("held_item");
+        if ((!friend.getMainHandItem().isEmpty() || !friend.getOffhandItem().isEmpty())
+                && HeldItemReactionPolicy.canReact(true, heldItemChangePending,
+                heldItemStableTicks, heldItemReactionCooldown))
+            reactions.add("held_item");
         reactions.removeIf(lastWorldReaction::equals);
         if (reactions.isEmpty()) return false;
         String reaction = reactions.get(random.nextInt(reactions.size()));
         lastWorldReaction = reaction;
         worldReactionCooldown = 700 + random.nextInt(701);
-        setSocialAction(reaction.equals("held_item") ? SocialAction.HELD_ITEM : SocialAction.CURIOUS);
-        socialActionTicks = 70;
+        if (reaction.equals("held_item")) startHeldItemReaction();
+        else {
+            setSocialAction(SocialAction.CURIOUS);
+            socialActionTicks = 70;
+        }
         if (animal != null && reaction.equals("animal")) queueLookAt(animal, 25.0F, 25.0F, "world animal");
         else if (villager != null && reaction.equals("villager")) queueLookAt(villager, 25.0F, 25.0F, "world villager");
         else queueLookAt(Vec3.atCenterOf(viewedPos), 25.0F, 25.0F, "world block");
@@ -3352,12 +3414,13 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
                         getRandomZ(.7D), (random.nextDouble() - .5D) * .08D, -.02D,
                         (random.nextDouble() - .5D) * .08D);
             }
-            if (random.nextInt(4) == 0) {
+            if (random.nextInt(2) == 0) {
                 int color = getHealingColor();
                 Vector3f rgb = new Vector3f(((color >> 16) & 255) / 255.0F, ((color >> 8) & 255) / 255.0F,
                         (color & 255) / 255.0F);
-                level().addParticle(new DustParticleOptions(rgb, 0.55F), getRandomX(0.45D), getY() + 1.45D,
-                        getRandomZ(0.45D), 0.0D, 0.008D, 0.0D);
+                level().addParticle(new DustParticleOptions(rgb, 0.65F), getRandomX(0.7D),
+                        getY() + 0.2D + random.nextDouble() * 2.65D,
+                        getRandomZ(0.7D), 0.0D, 0.008D, 0.0D);
             }
         } else {
             if (random.nextInt(22) == 0)
@@ -3371,6 +3434,27 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
 
     private Player getFriendPlayer() {
         return friendId == null ? null : level().getPlayerByUUID(friendId);
+    }
+
+    private boolean observeHeldItem(Player friend) {
+        ItemStack mainHand = friend.getMainHandItem();
+        ItemStack offhand = friend.getOffhandItem();
+        Item observed = !mainHand.isEmpty() ? mainHand.getItem()
+                : !offhand.isEmpty() ? offhand.getItem() : Items.AIR;
+        if (observed != lastObservedHeldItem) {
+            lastObservedHeldItem = observed;
+            heldItemChangePending = observed != Items.AIR;
+            heldItemStableTicks = 0;
+        }
+        return observed != Items.AIR;
+    }
+
+    private void startHeldItemReaction() {
+        setSocialAction(SocialAction.HELD_ITEM);
+        socialActionTicks = 70;
+        socialActionCooldown = Math.max(socialActionCooldown, 140);
+        heldItemReactionCooldown = HeldItemReactionPolicy.startCooldown();
+        heldItemChangePending = false;
     }
 
     private void tickSelfDefense() {
@@ -3643,6 +3727,14 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
         return false;
     }
 
+    private void presentRespawnFollowArrival() {
+        if (!(level() instanceof ServerLevel serverLevel)) return;
+        serverLevel.sendParticles(ParticleTypes.REVERSE_PORTAL, getX(), getY() + 1.45D, getZ(),
+                48, .45D, 1.1D, .45D, .06D);
+        serverLevel.sendParticles(ParticleTypes.END_ROD, getX(), getY() + 1.45D, getZ(),
+                10, .32D, .85D, .32D, .025D);
+    }
+
     private boolean hasDrySolidSupport(double x, double y, double z) {
         BlockPos feet = BlockPos.containing(x, y, z);
         BlockPos support = BlockPos.containing(x, y - 0.01D, z);
@@ -3818,7 +3910,9 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<>(this, "main", 4, state -> {
             boolean carrying = isVehicle() || getCarryAction() == CarryAction.CARRYING;
-            boolean moving = carrying ? entityData.get(CARRY_MOVING) : state.isMoving();
+            boolean localRiderMoving = level().isClientSide && getControllingPassenger() instanceof Player rider
+                    && (Math.abs(rider.xxa) > 0.001F || Math.abs(rider.zza) > 0.001F);
+            boolean moving = carrying ? entityData.get(CARRY_MOVING) || localRiderMoving : state.isMoving();
             FadedAnimationState.Snapshot snapshot = new FadedAnimationState.Snapshot(
                     isHealed(), isCrying(), isPlayerNearby(), entityData.get(HEALING_TICKS) > 0,
                     FadedAnimationState.CarryAction.valueOf(getCarryAction().name()), isVehicle(), isDowned(),
@@ -4788,11 +4882,18 @@ public final class FadedEnderman extends PathfinderMob implements GeoEntity, Sma
             double distance = distanceToSqr(friend);
             if (distance > 900.0D) {
                 entityData.set(RUNNING_TO_FRIEND, false);
-                if (canFollowTeleportTo(friend)) {
+                if (RespawnFollowTeleportTracker.blocksDistanceFollowTeleport(
+                        friend.getServer(), friend.getUUID())) {
+                    queueStop(FadedMovementCoordinator.Locomotion.FOLLOW_DISTANCE_STOP,
+                            "follow teleport paused after owner respawn");
+                } else if (canFollowTeleportTo(friend)) {
                     Player followTarget = friend;
                     queueLocomotion(FadedMovementCoordinator.Locomotion.FOLLOW_DISTANCE_TELEPORT,
                             friend.getStringUUID(), 0.0D, "follow distance teleport", () -> {
-                                teleportNearGroundedFriend(followTarget, 5.5D);
+                                boolean arrived = teleportNearGroundedFriend(followTarget, 5.5D);
+                                if (arrived && RespawnFollowTeleportTracker.consumeArrivalPresentation(
+                                        followTarget.getServer(), followTarget.getUUID()))
+                                    presentRespawnFollowArrival();
                                 applyNavigationStop();
                             });
                 } else queueStop(FadedMovementCoordinator.Locomotion.FOLLOW_DISTANCE_STOP,
